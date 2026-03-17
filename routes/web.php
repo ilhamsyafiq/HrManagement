@@ -18,7 +18,7 @@ use App\Http\Controllers\WorkingHourController;
 Route::middleware(['web', 'auth'])->group(function () {
     // Employee routes - exclude admin users
     Route::middleware(['redirect.admin'])->group(function () {
-        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard.page');
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/supervisor', [DashboardController::class, 'showSupervisor'])->name('supervisor.show');
         Route::get('/user/{id}', [UserController::class, 'show'])->name('user.show');
