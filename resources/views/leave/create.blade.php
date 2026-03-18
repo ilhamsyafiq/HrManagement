@@ -61,19 +61,23 @@
                         </div>
 
                         {{-- Document Upload --}}
-                        <div>
+                        <div x-data="{ fileName: '' }">
                             <x-input-label for="document" :value="__('Supporting Document (optional)')" class="mb-1.5" />
                             <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-200 border-dashed rounded-xl hover:border-blue-400 transition-colors duration-200">
                                 <div class="space-y-2 text-center">
-                                    <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg x-show="!fileName" class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                    </svg>
+                                    <svg x-show="fileName" class="mx-auto h-10 w-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                     <div class="text-sm text-gray-600">
                                         <label for="document" class="relative cursor-pointer rounded-md font-semibold text-blue-600 hover:text-blue-500 transition-colors duration-150">
-                                            <span>Upload a file</span>
-                                            <input type="file" id="document" name="document" class="sr-only" accept=".pdf,.jpg,.jpeg,.png" />
+                                            <span x-show="!fileName">Upload a file</span>
+                                            <span x-show="fileName" x-text="fileName" class="text-green-700" style="display:none;"></span>
+                                            <input type="file" id="document" name="document" class="sr-only" accept=".pdf,.jpg,.jpeg,.png" @change="fileName = $event.target.files[0]?.name || ''" />
                                         </label>
-                                        <span class="pl-1">or drag and drop</span>
+                                        <span x-show="!fileName" class="pl-1">or drag and drop</span>
                                     </div>
                                     <p class="text-xs text-gray-400">PDF, JPG, JPEG, PNG up to 2MB</p>
                                 </div>

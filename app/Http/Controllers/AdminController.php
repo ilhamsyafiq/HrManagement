@@ -14,8 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use setasign\Fpdi\Fpdi;
-
 class AdminController extends Controller
 {
     public function __construct()
@@ -311,8 +309,9 @@ class AdminController extends Controller
 
     public function reports()
     {
-        // Generate reports
-        return view('admin.reports');
+        $departments = Department::orderBy('name')->get();
+        $users = User::orderBy('name')->get();
+        return view('admin.reports', compact('departments', 'users'));
     }
 
     public function generateAttendanceReport(Request $request)
@@ -331,6 +330,11 @@ class AdminController extends Controller
             });
         }
 
+        // Filter by specific user
+        if ($request->user_id) {
+            $query->where('user_id', $request->user_id);
+        }
+
         // If supervisor, only show subordinates' attendances
         if (auth()->user()->isSupervisor()) {
             $subordinateIds = auth()->user()->subordinates->pluck('id');
@@ -345,7 +349,7 @@ class AdminController extends Controller
         $pdf->Cell(0, 10, 'Attendance Report', 0, 1, 'C');
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(0, 10, 'Period: ' . $startDate . ' to ' . $endDate, 0, 1, 'C');
-        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i:s'), 0, 1, 'C');
+        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i'), 0, 1, 'C');
         $pdf->Ln(10);
 
         // Table headers
@@ -393,6 +397,11 @@ class AdminController extends Controller
             });
         }
 
+        // Filter by specific user
+        if ($request->user_id) {
+            $query->where('user_id', $request->user_id);
+        }
+
         // If supervisor, only show subordinates' leaves
         if (auth()->user()->isSupervisor()) {
             $subordinateIds = auth()->user()->subordinates->pluck('id');
@@ -401,13 +410,13 @@ class AdminController extends Controller
 
         $leaves = $query->orderBy('created_at', 'desc')->get();
 
-        $pdf = new Fpdf();
+        $pdf = new \FPDF();
         $pdf->AddPage();
         $pdf->SetFont('Arial', 'B', 16);
         $pdf->Cell(0, 10, 'Leave Report', 0, 1, 'C');
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(0, 10, 'Period: ' . $startDate . ' to ' . $endDate, 0, 1, 'C');
-        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i:s'), 0, 1, 'C');
+        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i'), 0, 1, 'C');
         $pdf->Ln(10);
 
         // Table headers
@@ -470,7 +479,7 @@ class AdminController extends Controller
         $pdf->SetFont('Arial', 'B', 16);
         $pdf->Cell(0, 10, 'Employee Report', 0, 1, 'C');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i:s'), 0, 1, 'C');
+        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i'), 0, 1, 'C');
         $pdf->Ln(10);
 
         // Table headers
@@ -504,12 +513,12 @@ class AdminController extends Controller
     {
         $departments = Department::with('users.role')->get();
 
-        $pdf = new Fpdf();
+        $pdf = new \FPDF();
         $pdf->AddPage();
         $pdf->SetFont('Arial', 'B', 16);
         $pdf->Cell(0, 10, 'Department Report', 0, 1, 'C');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i:s'), 0, 1, 'C');
+        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i'), 0, 1, 'C');
         $pdf->Ln(10);
 
         foreach ($departments as $department) {
@@ -594,7 +603,7 @@ class AdminController extends Controller
         $pdf->Cell(0, 10, 'Monthly Summary Report', 0, 1, 'C');
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(0, 10, 'Period: ' . date('F Y', strtotime($startDate)), 0, 1, 'C');
-        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i:s'), 0, 1, 'C');
+        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i'), 0, 1, 'C');
         $pdf->Ln(10);
 
         // Attendance Summary
@@ -631,13 +640,13 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $pdf = new Fpdf();
+        $pdf = new \FPDF();
         $pdf->AddPage();
         $pdf->SetFont('Arial', 'B', 16);
         $pdf->Cell(0, 10, 'Audit Report', 0, 1, 'C');
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(0, 10, 'Period: ' . $startDate . ' to ' . $endDate, 0, 1, 'C');
-        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i:s'), 0, 1, 'C');
+        $pdf->Cell(0, 10, 'Generated on: ' . now()->format('Y-m-d H:i'), 0, 1, 'C');
         $pdf->Ln(10);
 
         // Table headers
@@ -654,7 +663,7 @@ class AdminController extends Controller
             $pdf->Cell(25, 6, $log->created_at->format('m/d/Y H:i'), 1);
             $pdf->Cell(30, 6, substr($log->user->name ?? 'System', 0, 20), 1);
             $pdf->Cell(25, 6, substr($log->action, 0, 20), 1);
-            $pdf->Cell(50, 6, substr($log->description ?? '', 0, 40), 1);
+            $pdf->Cell(50, 6, substr($log->model . ' #' . $log->model_id, 0, 40), 1);
             $pdf->Cell(30, 6, $log->ip_address ?? '-', 1);
             $pdf->Ln();
         }
@@ -721,6 +730,146 @@ class AdminController extends Controller
         Cache::forget('active_office_locations');
 
         return redirect()->route('admin.office-locations')->with('success', 'Office location deleted successfully.');
+    }
+
+    public function deleteUser($id)
+    {
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+            abort(403, 'Only Super Admin and Admin can delete users.');
+        }
+
+        $user = User::findOrFail($id);
+
+        // Super Admin cannot be deleted
+        if ($user->isSuperAdmin()) {
+            return redirect()->route('admin.users')->with('error', 'Super Admin account cannot be deleted.');
+        }
+
+        // Admin cannot delete other admins (only Super Admin can)
+        if ($user->isAdmin() && !auth()->user()->isSuperAdmin()) {
+            return redirect()->route('admin.users')->with('error', 'Only Super Admin can delete admin accounts.');
+        }
+
+        // Audit logging
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'delete_user',
+            'model' => 'User',
+            'model_id' => $user->id,
+            'old_values' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role->name ?? 'N/A',
+                'department' => $user->department->name ?? 'N/A',
+            ],
+            'new_values' => null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        $userName = $user->name;
+        $user->delete();
+
+        return redirect()->route('admin.users')->with('success', "User \"{$userName}\" has been deleted successfully.");
+    }
+
+    // ===================== Department Management =====================
+
+    public function departments()
+    {
+        $departments = Department::withCount('users')->with('hod')->orderBy('name')->get();
+        $users = User::orderBy('name')->get();
+
+        return view('admin.departments.index', compact('departments', 'users'));
+    }
+
+    public function storeDepartment(Request $request)
+    {
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:departments,name',
+            'description' => 'nullable|string|max:500',
+            'hod_id' => 'nullable|exists:users,id',
+        ]);
+
+        $department = Department::create($request->only('name', 'description', 'hod_id'));
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'create_department',
+            'model' => 'Department',
+            'model_id' => $department->id,
+            'old_values' => null,
+            'new_values' => ['name' => $department->name, 'description' => $department->description],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        return redirect()->route('admin.departments')->with('success', "Department \"{$department->name}\" created successfully.");
+    }
+
+    public function updateDepartment(Request $request, $id)
+    {
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $department = Department::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:departments,name,' . $id,
+            'description' => 'nullable|string|max:500',
+            'hod_id' => 'nullable|exists:users,id',
+        ]);
+
+        $oldValues = ['name' => $department->name, 'description' => $department->description, 'hod_id' => $department->hod_id];
+
+        $department->update($request->only('name', 'description', 'hod_id'));
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'update_department',
+            'model' => 'Department',
+            'model_id' => $department->id,
+            'old_values' => $oldValues,
+            'new_values' => ['name' => $department->name, 'description' => $department->description, 'hod_id' => $department->hod_id],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        return redirect()->route('admin.departments')->with('success', "Department \"{$department->name}\" updated successfully.");
+    }
+
+    public function deleteDepartment($id)
+    {
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
+        $department = Department::withCount('users')->findOrFail($id);
+
+        if ($department->users_count > 0) {
+            return redirect()->route('admin.departments')->with('error', "Cannot delete \"{$department->name}\" because it still has {$department->users_count} user(s) assigned.");
+        }
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'delete_department',
+            'model' => 'Department',
+            'model_id' => $department->id,
+            'old_values' => ['name' => $department->name, 'description' => $department->description],
+            'new_values' => null,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        $departmentName = $department->name;
+        $department->delete();
+
+        return redirect()->route('admin.departments')->with('success', "Department \"{$departmentName}\" deleted successfully.");
     }
 
     public function assignHod(Request $request, $departmentId)

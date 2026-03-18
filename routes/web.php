@@ -130,6 +130,13 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function () {
     Route::post('/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
     Route::get('/users/{id}/edit', [AdminController::class, 'editUser'])->name('admin.users.edit');
     Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('admin.users.update');
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+
+    // Departments
+    Route::get('/departments', [AdminController::class, 'departments'])->name('admin.departments');
+    Route::post('/departments', [AdminController::class, 'storeDepartment'])->name('admin.departments.store');
+    Route::put('/departments/{id}', [AdminController::class, 'updateDepartment'])->name('admin.departments.update');
+    Route::delete('/departments/{id}', [AdminController::class, 'deleteDepartment'])->name('admin.departments.delete');
 
     // Other admin routes
     Route::get('/attendances', [AdminController::class, 'attendances'])->name('admin.attendances');

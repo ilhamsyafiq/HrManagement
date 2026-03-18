@@ -7,9 +7,21 @@
 
     {{-- Announcement Popup Modal --}}
     @if(isset($popupAnnouncements) && $popupAnnouncements->count() > 0)
-    <div id="announcementPopup" class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: true }" x-show="show" x-transition>
+    <div id="announcementPopup" class="fixed inset-0 z-50 overflow-y-auto" x-data="{
+        show: false,
+        init() {
+            const today = new Date().toISOString().slice(0, 10);
+            const dismissed = localStorage.getItem('announcement_dismissed_date');
+            this.show = (dismissed !== today);
+        },
+        dismiss() {
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem('announcement_dismissed_date', today);
+            this.show = false;
+        }
+    }" x-show="show" x-transition>
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="show = false; document.getElementById('announcementPopup').remove()"></div>
+            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="dismiss()"></div>
             <div class="relative bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden z-10">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-600 to-purple-600">
                     <div class="flex items-center justify-between">
@@ -17,7 +29,7 @@
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                             <h3 class="text-lg font-semibold text-white">Important Announcements</h3>
                         </div>
-                        <button @click="show = false; document.getElementById('announcementPopup').remove()" class="text-white/70 hover:text-white transition">
+                        <button @click="dismiss()" class="text-white/70 hover:text-white transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
@@ -42,7 +54,7 @@
                 </div>
                 <div class="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
                     <a href="{{ route('announcements.index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition">View All Announcements</a>
-                    <button @click="show = false; document.getElementById('announcementPopup').remove()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Dismiss</button>
+                    <button @click="dismiss()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Dismiss</button>
                 </div>
             </div>
         </div>

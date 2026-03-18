@@ -43,11 +43,26 @@ class Attendance extends Model
 
     public function getFormattedWorkHoursAttribute()
     {
-        if (!$this->total_work_hours) {
+        $workHours = $this->total_work_hours;
+
+        // If no stored value but clock_in exists, calculate on-the-fly
+        if (!$workHours && $this->clock_in) {
+            $end = $this->clock_out ?? now('Asia/Kuala_Lumpur');
+            $totalMinutes = ($end->timestamp - $this->clock_in->timestamp) / 60;
+            $breakMinutes = $this->breaks()->whereNotNull('break_out')->sum('duration_minutes');
+            // Subtract active break time too
+            $activeBreak = $this->breaks()->whereNull('break_out')->first();
+            if ($activeBreak) {
+                $breakMinutes += now('Asia/Kuala_Lumpur')->diffInMinutes($activeBreak->break_in);
+            }
+            $workHours = max(0, ($totalMinutes - $breakMinutes) / 60);
+        }
+
+        if (!$workHours) {
             return 'N/A';
         }
 
-        $totalMinutes = round($this->total_work_hours * 60);
+        $totalMinutes = round($workHours * 60);
         $hours = intdiv((int) $totalMinutes, 60);
         $minutes = (int) $totalMinutes % 60;
 

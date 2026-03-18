@@ -450,7 +450,6 @@
             })
             .catch(error => {
                 console.error('Error loading calendar data:', error);
-                renderCalendar();
             });
         }
 
@@ -704,8 +703,9 @@
             document.getElementById('editHolidayModal').classList.remove('hidden');
         }
 
-        // Initialize
+        // Initialize - render calendar grid immediately, then load events asynchronously
         document.addEventListener('DOMContentLoaded', function() {
+            renderCalendar();
             loadCalendarData();
         });
     </script>

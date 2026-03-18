@@ -100,7 +100,29 @@ class MessageController extends Controller
         $user = auth()->user();
         $recipients = $this->getAllowedRecipients($user);
 
-        return view('messages.create', compact('recipients'));
+        // Group recipients by role, department, and same supervisor
+        $grouped = collect();
+
+        // Group by role
+        $byRole = $recipients->groupBy(function ($r) {
+            return $r->role->name ?? 'No Role';
+        });
+        foreach ($byRole as $role => $users) {
+            $grouped[$role] = $users;
+        }
+
+        // Group by department
+        $byDept = $recipients->filter(fn($r) => $r->department)->groupBy(function ($r) {
+            return $r->department->name;
+        });
+
+        // Group by same supervisor (colleagues)
+        $colleagues = collect();
+        if ($user->supervisor_id) {
+            $colleagues = $recipients->filter(fn($r) => $r->supervisor_id === $user->supervisor_id && $r->id !== $user->id);
+        }
+
+        return view('messages.create', compact('recipients', 'grouped', 'byDept', 'colleagues'));
     }
 
     public function store(Request $request)
