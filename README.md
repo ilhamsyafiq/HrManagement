@@ -527,17 +527,20 @@ Click the theme toggle icon in the navigation bar to cycle through modes. Your p
 
 ## Known Issues & Limitations
 
-### Not Working / Needs Fix
+### Resolved Issues
 
 | Issue | Description | Status |
 |-------|-------------|--------|
-| **Audit Log empty** | Audit log page loads but shows no entries. The `AuditLog` model exists but logging is not consistently triggered across all controllers. Only user create/update/delete actions are logged. | Bug |
-| **PDF Report errors** | Leave Report, Employee Report, Department Report, and Audit Report PDF generation may fail with class not found error (`Fpdf` vs `\FPDF`). | Bug |
-| **PDF time format** | PDF reports show time as `00:00:00` instead of `00:00`. | Bug |
-| **Attendance total hours** | Total work hours column in attendance view may show empty/zero. The `total_work_hours` field is not always calculated on clock out. | Bug |
-| **Leave document upload** | Supporting document upload in leave application form may not save the file correctly. The form may be missing `enctype="multipart/form-data"` or the controller may not handle the file upload. | Bug |
-| **Popup notification** | Dashboard announcement popup shows every page load. Should only show once per day when user dismisses it. | Enhancement needed |
-| **Message grouping** | Messages are listed individually. No grouping by role, department, or shared supervisor. | Enhancement needed |
+| **Audit Log empty** | Audit log entries are now created for user CRUD, leave approvals/rejections, attendance edits, and user deletions. | Solved |
+| **PDF Report errors** | Fixed class reference from `Fpdf` to `\FPDF()` across all report generation methods. | Solved |
+| **PDF time format** | Fixed to use `H:i` format instead of `H:i:s`. | Solved |
+| **Attendance total hours** | `total_work_hours` is calculated on clock out and recalculated after break out. The `formatted_work_hours` accessor also calculates on-the-fly if the stored value is missing. | Solved |
+| **Leave document upload** | Form has `enctype="multipart/form-data"` and controller stores file to `leaves` disk. | Solved |
+| **Popup notification** | Dashboard popup now shows only once per day. Uses `localStorage` to track dismissal date. | Solved |
+| **Message grouping** | Compose message form now groups recipients by Role, Department, and Same Supervisor using `<optgroup>` labels. | Solved |
+| **Calendar holiday modals** | JavaScript functions `openAddHolidayModal()` and `editHolidayFromView()` are implemented. | Solved |
+| **Dashboard icons** | Updated admin dashboard stat cards and quick action icons to match their labels. | Solved |
+| **Attendance filtering** | Admin attendance view now has filters for Employee, Month, and Status (All/Flagged/WFH). | Solved |
 
 ### Partially Working
 
@@ -545,10 +548,9 @@ Click the theme toggle icon in the navigation bar to cycle through modes. Your p
 |---------|-------------|
 | **Payroll** | Fully coded but removed from navigation. Routes and controllers exist but feature is not linked in the UI. |
 | **Geofencing** | Office location CRUD works, but actual GPS validation during clock in may not enforce blocking (only flags). |
-| **Calendar holiday modals** | Add/Edit holiday modals exist but JavaScript functions (`openAddHolidayModal`, `editHolidayFromView`) may be incomplete in the script section. |
 | **Email notifications** | User account creation email template exists but mail configuration may not be set up. |
 
-### Feature Not Yet Implemented
+### Features Not Yet Implemented
 
 | Feature | Description |
 |---------|-------------|

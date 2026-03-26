@@ -265,12 +265,23 @@ class AdminController extends Controller
 
     public function attendances(Request $request)
     {
-        $query = Attendance::with(['user', 'editor']);
+        $query = Attendance::with(['user', 'user.department', 'editor']);
 
         // If supervisor, only show subordinates' attendances
         if (auth()->user()->isSupervisor()) {
             $subordinateIds = auth()->user()->subordinates->pluck('id');
             $query->whereIn('user_id', $subordinateIds);
+        }
+
+        // Filter by user
+        if ($request->user_id) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        // Filter by month
+        if ($request->month) {
+            $month = $request->month; // format: YYYY-MM
+            $query->whereRaw("DATE_FORMAT(date, '%Y-%m') = ?", [$month]);
         }
 
         // Filter flagged records
@@ -284,7 +295,8 @@ class AdminController extends Controller
 
         $attendances = $query->orderBy('date', 'desc')->paginate(20)->appends($request->query());
         $filter = $request->filter;
-        return view('admin.attendances', compact('attendances', 'filter'));
+        $users = User::orderBy('name')->get();
+        return view('admin.attendances', compact('attendances', 'filter', 'users'));
     }
 
     public function leaves()

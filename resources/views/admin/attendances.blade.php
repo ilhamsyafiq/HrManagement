@@ -26,6 +26,42 @@
                 </div>
             @endif
 
+            {{-- Filters --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                    <form method="GET" action="{{ route('admin.attendances') }}" class="flex flex-wrap items-end gap-4">
+                        <div class="flex-1 min-w-[160px]">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Employee</label>
+                            <select name="user_id" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                                <option value="">All Employees</option>
+                                @foreach($users as $u)
+                                    <option value="{{ $u->id }}" {{ request('user_id') == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="min-w-[160px]">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Month</label>
+                            <input type="month" name="month" value="{{ request('month') }}" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div class="min-w-[100px]">
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                            <select name="filter" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                                <option value="">All</option>
+                                <option value="flagged" {{ request('filter') === 'flagged' ? 'selected' : '' }}>Flagged (Late/Early)</option>
+                                <option value="wfh" {{ request('filter') === 'wfh' ? 'selected' : '' }}>WFH</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                                Filter
+                            </button>
+                            <a href="{{ route('admin.attendances') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             {{-- Attendance Records --}}
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -35,11 +71,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                             </svg>
                             <h3 class="text-lg font-semibold text-gray-900">Attendance Records</h3>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <a href="{{ route('admin.attendances') }}" class="px-3 py-1.5 text-xs font-medium rounded-lg {{ !isset($filter) || !$filter ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }} transition-colors">All</a>
-                            <a href="{{ route('admin.attendances', ['filter' => 'flagged']) }}" class="px-3 py-1.5 text-xs font-medium rounded-lg {{ ($filter ?? '') === 'flagged' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100' }} transition-colors">Flagged (Late/Early)</a>
-                            <a href="{{ route('admin.attendances', ['filter' => 'wfh']) }}" class="px-3 py-1.5 text-xs font-medium rounded-lg {{ ($filter ?? '') === 'wfh' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100' }} transition-colors">WFH</a>
+                            <span class="ml-2 text-sm text-gray-500">({{ $attendances->total() }} records)</span>
                         </div>
                     </div>
                 </div>
