@@ -136,6 +136,28 @@ class LeaveController extends Controller
         return redirect()->back()->with('success', 'Leave rejected');
     }
 
+    public function downloadDocument($id)
+    {
+        $leave = Leave::findOrFail($id);
+        $user = Auth::user();
+
+        if (!$leave->document_path) {
+            abort(404, 'No document attached to this leave application.');
+        }
+
+        // Only the leave owner, admins, super admins, or the user's supervisor may download
+        $canDownload = $leave->user_id === $user->id
+            || $user->isSuperAdmin()
+            || $user->isAdmin()
+            || ($user->isSupervisor() && $leave->user->supervisor_id === $user->id);
+
+        if (!$canDownload) {
+            abort(403);
+        }
+
+        return Storage::disk('public')->download($leave->document_path);
+    }
+
     public function pendingApprovals()
     {
         $user = Auth::user();

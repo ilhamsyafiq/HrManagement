@@ -48,6 +48,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     // Leave routes - accessible by all authenticated users (moved outside redirect.admin)
     Route::resource('leave', \App\Http\Controllers\LeaveController::class);
+    Route::get('/leave/{id}/document', [\App\Http\Controllers\LeaveController::class, 'downloadDocument'])->name('leave.document.download');
 
     // Claims - accessible by all authenticated users
     Route::get('/claims', [ClaimController::class, 'index'])->name('claims.index');
