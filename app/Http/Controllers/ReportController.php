@@ -140,11 +140,31 @@ class ReportController extends Controller
 
     public function showSignForm(Document $document)
     {
+        $this->authorizeSigning($document);
+
         return view('reports.sign', compact('document'));
+    }
+
+    /**
+     * Only an Admin / Super Admin, or the direct supervisor of the report's
+     * owner, may sign an intern report.
+     */
+    protected function authorizeSigning(Document $document): void
+    {
+        $user = auth()->user();
+
+        $isAdmin = $user->isAdmin() || $user->isSuperAdmin();
+        $isOwnersSupervisor = $document->user && $document->user->supervisor_id === $user->id;
+
+        if (!$isAdmin && !$isOwnersSupervisor) {
+            abort(403);
+        }
     }
 
     public function sign(Request $request, Document $document)
     {
+        $this->authorizeSigning($document);
+
         $request->validate([
             'signature_data' => 'required|string',
             'comments' => 'nullable|string|max:1000',

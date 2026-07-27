@@ -37,6 +37,7 @@ class User extends Authenticatable implements FilamentUser
         'role_id',
         'department_id',
         'supervisor_id',
+        'shift_id',
         'is_intern',
         'internship_start_date',
         'internship_end_date',
@@ -80,6 +81,16 @@ class User extends Authenticatable implements FilamentUser
     public function supervisor()
     {
         return $this->belongsTo(User::class, 'supervisor_id');
+    }
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    public function shiftAssignments()
+    {
+        return $this->hasMany(ShiftAssignment::class);
     }
 
     public function subordinates()

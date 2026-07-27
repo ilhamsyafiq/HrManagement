@@ -20,6 +20,12 @@ class AttendanceResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    // Eager-load relations shown in the table to eliminate N+1 queries.
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->with(['user', 'editor', 'breaks']);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -100,6 +106,11 @@ class AttendanceResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('formatted_work_hours')
                     ->label('Work hours'),
+                Tables\Columns\TextColumn::make('formatted_overtime')
+                    ->label('Overtime')
+                    ->badge()
+                    ->color(fn (string $state) => $state === '-' ? 'gray' : 'info')
+                    ->placeholder('-'),
                 Tables\Columns\IconColumn::make('is_wfh')
                     ->label('WFH')
                     ->boolean()

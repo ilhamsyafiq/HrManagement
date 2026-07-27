@@ -202,6 +202,13 @@ class ClaimController extends Controller
             'approved_at' => now('Asia/Kuala_Lumpur'),
         ]);
 
+        $claim->user->notify(new \App\Notifications\SystemNotification(
+            'Claim approved',
+            'Your claim "' . ($claim->title ?? 'Expense claim') . '" was approved.',
+            route('claims.show', $claim),
+            'cash'
+        ));
+
         return redirect()->back()->with('success', 'Claim approved successfully.');
     }
 
@@ -228,6 +235,13 @@ class ClaimController extends Controller
             'rejection_reason' => $request->rejection_reason,
         ]);
 
+        $claim->user->notify(new \App\Notifications\SystemNotification(
+            'Claim rejected',
+            'Your claim "' . ($claim->title ?? 'Expense claim') . '" was rejected. Reason: ' . $request->rejection_reason,
+            route('claims.show', $claim),
+            'x'
+        ));
+
         return redirect()->back()->with('success', 'Claim rejected.');
     }
 
@@ -244,6 +258,13 @@ class ClaimController extends Controller
         }
 
         $claim->update(['status' => 'Paid']);
+
+        $claim->user->notify(new \App\Notifications\SystemNotification(
+            'Claim paid',
+            'Your claim "' . ($claim->title ?? 'Expense claim') . '" has been marked as paid.',
+            route('claims.show', $claim),
+            'cash'
+        ));
 
         return redirect()->back()->with('success', 'Claim marked as paid.');
     }

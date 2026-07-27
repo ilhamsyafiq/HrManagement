@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
             {{ __('My Calendar') }}
         </h2>
     </x-slot>
@@ -10,11 +10,11 @@
 
             {{-- Flash Message --}}
             @if(session('success'))
-                <div class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 flex items-center gap-3">
+                <div class="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/30 px-5 py-4 flex items-center gap-3">
                     <svg class="w-5 h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <span class="text-sm font-medium text-green-700">{{ session('success') }}</span>
+                    <span class="text-sm font-medium text-green-700 dark:text-green-300">{{ session('success') }}</span>
                 </div>
             @endif
 
@@ -29,21 +29,21 @@
                         $nextYear = $year;
                         if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                     @endphp
-                    <a href="{{ route('calendar.index', ['month' => $prevMonth, 'year' => $prevYear]) }}" class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                    <a href="{{ route('calendar.index', ['month' => $prevMonth, 'year' => $prevYear]) }}" class="inline-flex items-center px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                         Prev
                     </a>
-                    <span class="text-2xl font-bold text-gray-800" id="calendarTitle">
+                    <span class="text-2xl font-bold text-gray-800 dark:text-gray-200" id="calendarTitle">
                         {{ \Carbon\Carbon::create($year, $month, 1)->format('F Y') }}
                     </span>
-                    <a href="{{ route('calendar.index', ['month' => $nextMonth, 'year' => $nextYear]) }}" class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                    <a href="{{ route('calendar.index', ['month' => $nextMonth, 'year' => $nextYear]) }}" class="inline-flex items-center px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                         Next
                         <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </a>
                 </div>
 
                 <div class="flex items-center gap-2">
-                    @if($isSupervisor)
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                         <button onclick="openAddHolidayModal()" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2.5 px-5 rounded-xl transition-all duration-200 hover:shadow-md">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -61,66 +61,66 @@
             </div>
 
             {{-- Calendar Grid --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 {{-- Day Headers --}}
-                <div class="grid grid-cols-7 bg-gray-50/80 border-b border-gray-100">
+                <div class="grid grid-cols-7 bg-gray-50/80 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-700">
                     @foreach(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $dayLabel)
-                        <div class="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider py-3">{{ $dayLabel }}</div>
+                        <div class="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3">{{ $dayLabel }}</div>
                     @endforeach
                 </div>
                 {{-- Day Cells --}}
-                <div id="calendarGrid" class="grid grid-cols-7 divide-x divide-gray-50">
+                <div id="calendarGrid" class="grid grid-cols-7 divide-x divide-gray-50 dark:divide-gray-700">
                     {{-- Populated by JavaScript --}}
                 </div>
             </div>
 
             {{-- Legend --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
                 <div class="flex flex-wrap items-center gap-6 text-sm">
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-green-500"></span>
-                        <span class="text-gray-600">Public Holiday</span>
+                        <span class="text-gray-600 dark:text-gray-400">Public Holiday</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-teal-500"></span>
-                        <span class="text-gray-600">Company Holiday</span>
+                        <span class="text-gray-600 dark:text-gray-400">Company Holiday</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-                        <span class="text-gray-600">Optional Holiday</span>
+                        <span class="text-gray-600 dark:text-gray-400">Optional Holiday</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-                        <span class="text-gray-600">My Events</span>
+                        <span class="text-gray-600 dark:text-gray-400">My Events</span>
                     </div>
                     @if($isSupervisor)
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-purple-500"></span>
-                        <span class="text-gray-600">Subordinate Events</span>
+                        <span class="text-gray-600 dark:text-gray-400">Subordinate Events</span>
                     </div>
                     @endif
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-indigo-600"></span>
-                        <span class="text-gray-600">Today</span>
+                        <span class="text-gray-600 dark:text-gray-400">Today</span>
                     </div>
                 </div>
             </div>
 
             {{-- Upcoming Events --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                    <h3 class="text-base font-semibold text-gray-900">Upcoming Events</h3>
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700">
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Upcoming Events</h3>
                 </div>
-                <div class="divide-y divide-gray-50">
+                <div class="divide-y divide-gray-50 dark:divide-gray-700">
                     @forelse($upcomingEvents as $event)
-                        <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50/60 transition-colors duration-150">
+                        <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50/60 dark:hover:bg-gray-700 transition-colors duration-150">
                             <div class="flex items-center gap-4">
                                 <div class="flex-shrink-0 w-12 text-center">
-                                    <div class="text-xs font-semibold text-gray-500 uppercase">{{ $event->event_date->format('M') }}</div>
-                                    <div class="text-lg font-bold text-gray-900">{{ $event->event_date->format('d') }}</div>
+                                    <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{{ $event->event_date->format('M') }}</div>
+                                    <div class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ $event->event_date->format('d') }}</div>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-medium text-gray-900">{{ $event->title }}</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $event->title }}</p>
                                     <div class="flex items-center gap-2 mt-0.5">
                                         <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full
                                             @if($event->type === 'Personal') bg-blue-50 text-blue-700
@@ -131,17 +131,17 @@
                                             @endif
                                         ">{{ $event->type }}</span>
                                         @if($event->event_time)
-                                            <span class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($event->event_time)->format('g:i A') }}</span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($event->event_time)->format('g:i A') }}</span>
                                         @endif
                                     </div>
                                 </div>
                             </div>
-                            <div class="text-xs text-gray-500">
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
                                 {{ $event->event_date->format('l') }}
                             </div>
                         </div>
                     @empty
-                        <div class="px-6 py-12 text-center text-sm text-gray-400">
+                        <div class="px-6 py-12 text-center text-sm text-gray-400 dark:text-gray-500">
                             No upcoming events.
                         </div>
                     @endforelse
@@ -154,28 +154,28 @@
     {{-- Add Event Modal --}}
     <div id="addEventModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeAddModal()"></div>
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Add Event</h3>
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900/80 transition-opacity" onclick="closeAddModal()"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Add Event</h3>
                 <form action="{{ route('calendar.store') }}" method="POST" class="space-y-4">
                     @csrf
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input type="text" name="title" id="add_title" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="Event title">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                        <input type="text" name="title" id="add_title" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="Event title">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                            <input type="date" name="event_date" id="add_event_date" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                            <input type="date" name="event_date" id="add_event_date" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Time (Optional)</label>
-                            <input type="time" name="event_time" id="add_event_time" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time (Optional)</label>
+                            <input type="time" name="event_time" id="add_event_time" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type" id="add_type" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                        <select name="type" id="add_type" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                             <option value="Personal">Personal</option>
                             <option value="Meeting">Meeting</option>
                             <option value="Deadline">Deadline</option>
@@ -184,15 +184,15 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                        <textarea name="description" id="add_description" rows="3" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="Brief description..."></textarea>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (Optional)</label>
+                        <textarea name="description" id="add_description" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="Brief description..."></textarea>
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="checkbox" name="notify_supervisor" value="1" id="add_notify_supervisor" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        <label for="add_notify_supervisor" class="text-sm text-gray-700">Notify my supervisor</label>
+                        <label for="add_notify_supervisor" class="text-sm text-gray-700 dark:text-gray-300">Notify my supervisor</label>
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                        <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancel</button>
                         <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">Add Event</button>
                     </div>
                 </form>
@@ -203,22 +203,22 @@
     {{-- View Event Modal --}}
     <div id="viewEventModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeViewModal()"></div>
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4" id="view_modal_title">Event Details</h3>
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900/80 transition-opacity" onclick="closeViewModal()"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4" id="view_modal_title">Event Details</h3>
                 <div class="space-y-3">
                     <div>
                         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</span>
-                        <p class="text-sm text-gray-900 mt-0.5" id="view_title"></p>
+                        <p class="text-sm text-gray-900 dark:text-gray-100 mt-0.5" id="view_title"></p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</span>
-                            <p class="text-sm text-gray-900 mt-0.5" id="view_date"></p>
+                            <p class="text-sm text-gray-900 dark:text-gray-100 mt-0.5" id="view_date"></p>
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Time</span>
-                            <p class="text-sm text-gray-900 mt-0.5" id="view_time"></p>
+                            <p class="text-sm text-gray-900 dark:text-gray-100 mt-0.5" id="view_time"></p>
                         </div>
                     </div>
                     <div>
@@ -227,19 +227,19 @@
                     </div>
                     <div id="view_description_section">
                         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</span>
-                        <p class="text-sm text-gray-700 mt-0.5" id="view_description"></p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mt-0.5" id="view_description"></p>
                     </div>
                     <div id="view_user_section" class="hidden">
                         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Created by</span>
-                        <p class="text-sm text-gray-900 mt-0.5" id="view_user_name"></p>
+                        <p class="text-sm text-gray-900 dark:text-gray-100 mt-0.5" id="view_user_name"></p>
                     </div>
                     <div id="view_notify_section">
                         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Supervisor Notification</span>
-                        <p class="text-sm text-gray-700 mt-0.5" id="view_notify"></p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mt-0.5" id="view_notify"></p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 pt-5" id="view_actions">
-                    <button type="button" onclick="closeViewModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Close</button>
+                    <button type="button" onclick="closeViewModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Close</button>
                     <button type="button" onclick="openEditFromView()" id="btn_edit_event" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">Edit</button>
                     <form id="deleteEventForm" method="POST" class="inline" onsubmit="return confirm('Delete this event?')">
                         @csrf
@@ -254,29 +254,29 @@
     {{-- Edit Event Modal --}}
     <div id="editEventModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeEditModal()"></div>
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Event</h3>
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900/80 transition-opacity" onclick="closeEditModal()"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Edit Event</h3>
                 <form id="editEventForm" method="POST" class="space-y-4">
                     @csrf
                     @method('PUT')
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input type="text" name="title" id="edit_title" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                        <input type="text" name="title" id="edit_title" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                            <input type="date" name="event_date" id="edit_event_date" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                            <input type="date" name="event_date" id="edit_event_date" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Time (Optional)</label>
-                            <input type="time" name="event_time" id="edit_event_time" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time (Optional)</label>
+                            <input type="time" name="event_time" id="edit_event_time" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type" id="edit_type" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                        <select name="type" id="edit_type" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                             <option value="Personal">Personal</option>
                             <option value="Meeting">Meeting</option>
                             <option value="Deadline">Deadline</option>
@@ -285,15 +285,15 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                        <textarea name="description" id="edit_description" rows="3" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"></textarea>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (Optional)</label>
+                        <textarea name="description" id="edit_description" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"></textarea>
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="checkbox" name="notify_supervisor" value="1" id="edit_notify_supervisor" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        <label for="edit_notify_supervisor" class="text-sm text-gray-700">Notify my supervisor</label>
+                        <label for="edit_notify_supervisor" class="text-sm text-gray-700 dark:text-gray-300">Notify my supervisor</label>
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                        <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancel</button>
                         <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">Update Event</button>
                     </div>
                 </form>
@@ -304,17 +304,17 @@
     {{-- View Holiday Modal --}}
     <div id="viewHolidayModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="document.getElementById('viewHolidayModal').classList.add('hidden')"></div>
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Holiday Details</h3>
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900/80 transition-opacity" onclick="document.getElementById('viewHolidayModal').classList.add('hidden')"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Holiday Details</h3>
                 <div class="space-y-3">
                     <div>
                         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Holiday</span>
-                        <p class="text-sm text-gray-900 mt-0.5" id="holiday_view_title"></p>
+                        <p class="text-sm text-gray-900 dark:text-gray-100 mt-0.5" id="holiday_view_title"></p>
                     </div>
                     <div>
                         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</span>
-                        <p class="text-sm text-gray-900 mt-0.5" id="holiday_view_date"></p>
+                        <p class="text-sm text-gray-900 dark:text-gray-100 mt-0.5" id="holiday_view_date"></p>
                     </div>
                     <div>
                         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</span>
@@ -322,12 +322,12 @@
                     </div>
                     <div id="holiday_view_desc_section">
                         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</span>
-                        <p class="text-sm text-gray-700 mt-0.5" id="holiday_view_description"></p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mt-0.5" id="holiday_view_description"></p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 pt-5">
-                    <button type="button" onclick="document.getElementById('viewHolidayModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Close</button>
-                    @if($isSupervisor)
+                    <button type="button" onclick="document.getElementById('viewHolidayModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Close</button>
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                         <button type="button" onclick="editHolidayFromView()" id="btn_edit_holiday" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">Edit</button>
                         <form id="deleteHolidayForm" method="POST" class="inline" onsubmit="return confirm('Delete this holiday?')">
                             @csrf
@@ -341,40 +341,40 @@
     </div>
 
     {{-- Add Holiday Modal --}}
-    @if($isSupervisor)
+    @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
     <div id="addHolidayModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="document.getElementById('addHolidayModal').classList.add('hidden')"></div>
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Add Holiday</h3>
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900/80 transition-opacity" onclick="document.getElementById('addHolidayModal').classList.add('hidden')"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Add Holiday</h3>
                 <form action="{{ route('holidays.store') }}" method="POST" class="space-y-4">
                     @csrf
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Holiday Name</label>
-                        <input type="text" name="name" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="e.g. Hari Raya Aidilfitri">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Holiday Name</label>
+                        <input type="text" name="name" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="e.g. Hari Raya Aidilfitri">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" name="date" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                        <input type="date" name="date" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                        <select name="type" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                             <option value="Public">Public Holiday</option>
                             <option value="Company">Company Holiday</option>
                             <option value="Optional">Optional Holiday</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                        <textarea name="description" rows="2" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="Brief description..."></textarea>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (Optional)</label>
+                        <textarea name="description" rows="2" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" placeholder="Brief description..."></textarea>
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="checkbox" name="is_recurring" value="1" id="holiday_is_recurring" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        <label for="holiday_is_recurring" class="text-sm text-gray-700">Recurring annually</label>
+                        <label for="holiday_is_recurring" class="text-sm text-gray-700 dark:text-gray-300">Recurring annually</label>
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" onclick="document.getElementById('addHolidayModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                        <button type="button" onclick="document.getElementById('addHolidayModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancel</button>
                         <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition">Add Holiday</button>
                     </div>
                 </form>
@@ -385,37 +385,37 @@
     {{-- Edit Holiday Modal --}}
     <div id="editHolidayModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="document.getElementById('editHolidayModal').classList.add('hidden')"></div>
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Holiday</h3>
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900/80 transition-opacity" onclick="document.getElementById('editHolidayModal').classList.add('hidden')"></div>
+            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 z-10">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Edit Holiday</h3>
                 <form id="editHolidayForm" method="POST" class="space-y-4">
                     @csrf @method('PUT')
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Holiday Name</label>
-                        <input type="text" name="name" id="edit_holiday_name" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Holiday Name</label>
+                        <input type="text" name="name" id="edit_holiday_name" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" name="date" id="edit_holiday_date" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                        <input type="date" name="date" id="edit_holiday_date" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                        <select name="type" id="edit_holiday_type" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                        <select name="type" id="edit_holiday_type" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                             <option value="Public">Public Holiday</option>
                             <option value="Company">Company Holiday</option>
                             <option value="Optional">Optional Holiday</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                        <textarea name="description" id="edit_holiday_description" rows="2" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"></textarea>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (Optional)</label>
+                        <textarea name="description" id="edit_holiday_description" rows="2" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"></textarea>
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="checkbox" name="is_recurring" value="1" id="edit_holiday_is_recurring" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        <label for="edit_holiday_is_recurring" class="text-sm text-gray-700">Recurring annually</label>
+                        <label for="edit_holiday_is_recurring" class="text-sm text-gray-700 dark:text-gray-300">Recurring annually</label>
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" onclick="document.getElementById('editHolidayModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                        <button type="button" onclick="document.getElementById('editHolidayModal').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancel</button>
                         <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">Update Holiday</button>
                     </div>
                 </form>
@@ -470,10 +470,10 @@
             for (let i = 0; i < totalCells; i++) {
                 const dayNum = i - startDay + 1;
                 const cell = document.createElement('div');
-                cell.className = 'min-h-[100px] border-b border-gray-50 p-2';
+                cell.className = 'min-h-[100px] border-b border-gray-50 dark:border-gray-700 p-2';
 
                 if (dayNum < 1 || dayNum > daysInMonth) {
-                    cell.classList.add('bg-gray-50/30');
+                    cell.classList.add('bg-gray-50/30', 'dark:bg-gray-900/30');
                     grid.appendChild(cell);
                     continue;
                 }
@@ -491,9 +491,9 @@
                 if (isToday) {
                     dayNumber.className = 'inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold';
                 } else if (isWeekend) {
-                    dayNumber.className = 'text-xs font-medium text-gray-400';
+                    dayNumber.className = 'text-xs font-medium text-gray-400 dark:text-gray-500';
                 } else {
-                    dayNumber.className = 'text-xs font-medium text-gray-700';
+                    dayNumber.className = 'text-xs font-medium text-gray-700 dark:text-gray-300';
                 }
                 dayLabel.appendChild(dayNumber);
 
@@ -508,7 +508,7 @@
                 dayLabel.appendChild(addBtn);
 
                 cell.appendChild(dayLabel);
-                cell.className += ' group cursor-pointer hover:bg-indigo-50/30 transition-colors duration-150';
+                cell.className += ' group cursor-pointer hover:bg-indigo-50/30 dark:hover:bg-indigo-900/20 transition-colors duration-150';
                 cell.onclick = function() { openAddModal(dateStr); };
 
                 // Holidays for this day

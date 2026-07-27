@@ -121,7 +121,7 @@ class CalendarEventController extends Controller
 
         if ($isSupervisor) {
             $subordinateIds = $user->isSuperAdmin() || $user->isAdmin()
-                ? \App\Models\User::where('id', '!=', $user->id)->pluck('id')
+                ? \App\Models\User::where('id', '!=', $user->id)->limit(1000)->pluck('id')
                 : $user->subordinates()->pluck('id');
 
             $subordinateEvents = CalendarEvent::whereIn('user_id', $subordinateIds)

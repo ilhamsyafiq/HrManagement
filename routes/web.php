@@ -71,6 +71,12 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Announcements - accessible by all authenticated users
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
 
+    // Notifications - accessible by all authenticated users
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::match(['get', 'post'], '/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
+
     // Holiday Calendar routes - accessible by all authenticated users
     Route::get('/holidays', [HolidayController::class, 'index'])->name('holidays.index');
     Route::get('/holidays/calendar-data', [HolidayController::class, 'calendarData'])->name('holidays.calendar-data');
@@ -103,6 +109,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
     Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
     Route::get('/payroll/{payroll}/payslip', [PayrollController::class, 'payslip'])->name('payroll.payslip');
+    Route::get('/payroll/{payroll}/payslip/pdf', [PayrollController::class, 'downloadPayslip'])->name('payroll.payslip.pdf');
     Route::post('/payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
     Route::post('/payroll/{payroll}/item', [PayrollController::class, 'addItem'])->name('payroll.item.add');
     Route::delete('/payroll/item/{item}', [PayrollController::class, 'removeItem'])->name('payroll.item.remove');
@@ -121,7 +128,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 });
 
 // Admin routes
-Route::middleware(['web', 'auth'])->prefix('admin')->group(function () {
+Route::middleware(['web', 'auth', \App\Http\Middleware\RedirectAdminsToFilament::class])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 
     // Users

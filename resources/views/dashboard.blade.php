@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
             {{ __('Dashboard') }}
         </h2>
     </x-slot>
@@ -22,8 +22,8 @@
     }" x-show="show" x-transition>
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="dismiss()"></div>
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden z-10">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-600 to-purple-600">
+            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full overflow-hidden z-10">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-indigo-600 to-purple-600">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
@@ -34,7 +34,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="max-h-[60vh] overflow-y-auto divide-y divide-gray-100">
+                <div class="max-h-[60vh] overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                     @foreach($popupAnnouncements as $ann)
                         <div class="px-6 py-4">
                             <div class="flex items-start gap-3">
@@ -44,17 +44,17 @@
                                     @else bg-blue-100 text-blue-700 @endif
                                 ">{{ $ann->priority }}</span>
                                 <div class="flex-1">
-                                    <h4 class="text-sm font-semibold text-gray-900">{{ $ann->title }}</h4>
-                                    <p class="text-sm text-gray-600 mt-1 line-clamp-3">{!! nl2br(e(Str::limit($ann->content, 200))) !!}</p>
-                                    <p class="text-xs text-gray-400 mt-2">{{ \Carbon\Carbon::parse($ann->publish_date)->diffForHumans() }}</p>
+                                    <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $ann->title }}</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">{!! nl2br(e(Str::limit($ann->content, 200))) !!}</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">{{ \Carbon\Carbon::parse($ann->publish_date)->diffForHumans() }}</p>
                                 </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
-                <div class="px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
-                    <a href="{{ route('announcements.index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition">View All Announcements</a>
-                    <button @click="dismiss()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Dismiss</button>
+                <div class="px-6 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex justify-between items-center">
+                    <a href="{{ route('announcements.index') }}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition">View All Announcements</a>
+                    <button @click="dismiss()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Dismiss</button>
                 </div>
             </div>
         </div>
@@ -99,13 +99,39 @@
                 </div>
             </div>
 
+            <!-- My Shift -->
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
+                    <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">My Shift</h3>
+                </div>
+                <div class="p-6">
+                    @if(auth()->user()->shift)
+                        <div class="flex items-center gap-4">
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3 flex-1">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Shift</div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ auth()->user()->shift->name }}</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3 flex-1">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Hours</div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ auth()->user()->shift->start_time->format('H:i') }} &ndash; {{ auth()->user()->shift->end_time->format('H:i') }}</div>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-400 dark:text-gray-500">No shift assigned</p>
+                    @endif
+                </div>
+            </div>
+
             <!-- Today's Attendance -->
-            <div class="rounded-2xl shadow-sm border border-gray-100 bg-white overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center">
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
                     <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
-                    <h3 class="text-base font-semibold text-gray-800">Today's Attendance</h3>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Today's Attendance</h3>
                 </div>
                 <div class="p-6">
                     @if($todayAttendance)
@@ -120,7 +146,7 @@
                             </div>
                         @endif
                         @if($todayAttendance->location_flagged)
-                            <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-start">
+                            <div class="mb-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-xl text-sm flex items-start">
                                 <svg class="w-5 h-5 mr-2 mt-0.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                                 </svg>
@@ -128,42 +154,42 @@
                             </div>
                         @endif
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-gray-50 rounded-xl p-4">
-                                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Clock In</div>
-                                <div class="text-lg font-semibold text-gray-900">{{ $todayAttendance->clock_in ? $todayAttendance->clock_in->format('H:i') : 'Not yet' }}</div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Clock In</div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $todayAttendance->clock_in ? $todayAttendance->clock_in->format('H:i') : 'Not yet' }}</div>
                                 @if($todayAttendance->clock_in_address)
-                                    <div class="text-xs text-gray-500 mt-1">{{ $todayAttendance->clock_in_address }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $todayAttendance->clock_in_address }}</div>
                                 @endif
                             </div>
-                            <div class="bg-gray-50 rounded-xl p-4">
-                                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Clock Out</div>
-                                <div class="text-lg font-semibold text-gray-900">{{ $todayAttendance->clock_out ? $todayAttendance->clock_out->format('H:i') : 'Not yet' }}</div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Clock Out</div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $todayAttendance->clock_out ? $todayAttendance->clock_out->format('H:i') : 'Not yet' }}</div>
                                 @if($todayAttendance->clock_out_address)
-                                    <div class="text-xs text-gray-500 mt-1">{{ $todayAttendance->clock_out_address }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $todayAttendance->clock_out_address }}</div>
                                 @endif
                             </div>
-                            <div class="bg-gray-50 rounded-xl p-4">
-                                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total Hours</div>
-                                <div class="text-lg font-semibold text-gray-900">{{ $todayAttendance->formatted_work_hours }}</div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Hours</div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $todayAttendance->formatted_work_hours }}</div>
                             </div>
                         </div>
                         @if($todayAttendance->breaks->count() > 0)
                             <div class="mt-5">
-                                <h4 class="text-sm font-semibold text-gray-700 mb-2">Breaks</h4>
+                                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Breaks</h4>
                                 <div class="space-y-2">
                                     @foreach($todayAttendance->breaks as $break)
-                                        <div class="flex items-center text-sm bg-gray-50 rounded-lg px-4 py-2">
-                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-semibold mr-3">{{ $loop->iteration }}</span>
-                                            <span class="text-gray-700">{{ $break->break_in->format('H:i') }} - {{ $break->break_out ? $break->break_out->format('H:i') : 'Ongoing' }}</span>
-                                            <span class="ml-auto text-gray-500">{{ $break->duration_minutes ? number_format($break->duration_minutes / 60, 2) . 'h' : 'N/A' }}</span>
+                                        <div class="flex items-center text-sm bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2">
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 text-xs font-semibold mr-3">{{ $loop->iteration }}</span>
+                                            <span class="text-gray-700 dark:text-gray-300">{{ $break->break_in->format('H:i') }} - {{ $break->break_out ? $break->break_out->format('H:i') : 'Ongoing' }}</span>
+                                            <span class="ml-auto text-gray-500 dark:text-gray-400">{{ $break->duration_minutes ? number_format($break->duration_minutes / 60, 2) . 'h' : 'N/A' }}</span>
                                         </div>
                                     @endforeach
                                 </div>
                             </div>
                         @endif
                     @else
-                        <div class="text-center py-6 text-gray-400">
-                            <svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="text-center py-6 text-gray-400 dark:text-gray-500">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                             </svg>
                             <p class="text-sm">No attendance record for today.</p>
@@ -173,89 +199,100 @@
             </div>
 
             <!-- Quick Actions -->
-            <div class="rounded-2xl shadow-sm border border-gray-100 bg-white overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center">
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
                     <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
-                    <h3 class="text-base font-semibold text-gray-800">Quick Actions</h3>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Quick Actions</h3>
                 </div>
                 <div class="p-6">
                     <!-- WFH Toggle -->
                     <div class="mb-5 flex items-center" id="wfh-toggle-container">
                         <label class="flex items-center cursor-pointer">
                             <input type="checkbox" id="wfh-checkbox" class="sr-only peer" onchange="toggleWfh()">
-                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                            <span class="ms-3 text-sm font-medium text-gray-700">Working From Home (WFH)</span>
+                            <div class="relative w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span class="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">Working From Home (WFH)</span>
                         </label>
                         <span id="wfh-badge" class="ml-3 inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 hidden">WFH Mode</span>
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button id="clock-in-btn" class="group flex flex-col items-center justify-center bg-white border border-gray-200 hover:border-green-300 hover:bg-green-50 disabled:bg-gray-50 disabled:border-gray-100 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="clockIn()">
+                        <button id="clock-in-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="clockIn()">
                             <div class="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
                                 <svg class="w-5 h-5 text-green-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                                 </svg>
                             </div>
-                            <span class="text-sm font-semibold text-gray-700 group-disabled:text-gray-400">Clock In</span>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Clock In</span>
                         </button>
-                        <button id="clock-out-btn" class="group flex flex-col items-center justify-center bg-white border border-gray-200 hover:border-red-300 hover:bg-red-50 disabled:bg-gray-50 disabled:border-gray-100 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="clockOut()">
+                        <button id="clock-out-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="clockOut()">
                             <div class="w-10 h-10 rounded-full bg-red-100 group-hover:bg-red-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
                                 <svg class="w-5 h-5 text-red-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                                 </svg>
                             </div>
-                            <span class="text-sm font-semibold text-gray-700 group-disabled:text-gray-400">Clock Out</span>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Clock Out</span>
                         </button>
-                        <button id="break-in-btn" class="group flex flex-col items-center justify-center bg-white border border-gray-200 hover:border-amber-300 hover:bg-amber-50 disabled:bg-gray-50 disabled:border-gray-100 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="breakIn()">
+                        <button id="break-in-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="breakIn()">
                             <div class="w-10 h-10 rounded-full bg-amber-100 group-hover:bg-amber-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
                                 <svg class="w-5 h-5 text-amber-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
-                            <span class="text-sm font-semibold text-gray-700 group-disabled:text-gray-400">Start Break</span>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Start Break</span>
                         </button>
-                        <button id="break-out-btn" class="group flex flex-col items-center justify-center bg-white border border-gray-200 hover:border-orange-300 hover:bg-orange-50 disabled:bg-gray-50 disabled:border-gray-100 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="breakOut()">
+                        <button id="break-out-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="breakOut()">
                             <div class="w-10 h-10 rounded-full bg-orange-100 group-hover:bg-orange-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
                                 <svg class="w-5 h-5 text-orange-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
                             </div>
-                            <span class="text-sm font-semibold text-gray-700 group-disabled:text-gray-400">End Break</span>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">End Break</span>
                         </button>
                     </div>
-                    <div class="mt-4 text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-2.5">
-                        <span class="font-medium text-gray-500">Status:</span> <span id="action-status">Loading...</span>
+                    <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2.5">
+                        <span class="font-medium text-gray-500 dark:text-gray-400">Status:</span> <span id="action-status">Loading...</span>
                     </div>
                 </div>
             </div>
 
             <!-- Recent Attendances -->
-            <div class="rounded-2xl shadow-sm border border-gray-100 bg-white overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center">
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
                     <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <h3 class="text-base font-semibold text-gray-800">Recent Attendances</h3>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Recent Attendances</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-gray-100">
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Clock In</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Clock Out</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hours</th>
+                            <tr class="border-b border-gray-100 dark:border-gray-700">
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Clock In</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Clock Out</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Hours</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Overtime</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-50">
+                        <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
                             @foreach($recentAttendances as $attendance)
-                                <tr class="hover:bg-gray-50/50 transition-colors">
-                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm font-medium text-gray-900">{{ $attendance->date->format('M d, Y') }}</td>
-                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm text-gray-600">{{ $attendance->clock_in ? $attendance->clock_in->format('H:i') : '-' }}</td>
-                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm text-gray-600">{{ $attendance->clock_out ? $attendance->clock_out->format('H:i') : '-' }}</td>
-                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm text-gray-600">{{ $attendance->formatted_work_hours }}</td>
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700 transition-colors">
+                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ $attendance->date->format('M d, Y') }}</td>
+                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{ $attendance->clock_in ? $attendance->clock_in->format('H:i') : '-' }}</td>
+                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{ $attendance->clock_out ? $attendance->clock_out->format('H:i') : '-' }}</td>
+                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{ $attendance->formatted_work_hours }}</td>
+                                    <td class="px-6 py-3.5 whitespace-nowrap text-sm">
+                                        @if($attendance->overtime_hours > 0)
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 ring-1 ring-inset ring-purple-600/20">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>
+                                                {{ $attendance->formatted_overtime }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400 dark:text-gray-500">-</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -263,19 +300,39 @@
                 </div>
             </div>
 
+            <!-- Leave Balance -->
+            @isset($leaveBalance)
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
+                    <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Leave Balance {{ now('Asia/Kuala_Lumpur')->year }}</h3>
+                </div>
+                <div class="p-6 grid grid-cols-3 gap-4">
+                    @foreach($leaveBalance as $type => $bal)
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 text-center">
+                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{{ $type }}</div>
+                            <div class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ $bal['remaining'] }}<span class="text-sm font-normal text-gray-500 dark:text-gray-400"> / {{ $bal['entitlement'] }}</span></div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endisset
+
             <!-- Leave Status -->
-            <div class="rounded-2xl shadow-sm border border-gray-100 bg-white overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center">
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
                     <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    <h3 class="text-base font-semibold text-gray-800">Leave Status</h3>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Leave Status</h3>
                 </div>
                 <div class="p-6 flex items-center justify-between">
                     <div class="flex items-center">
-                        <span class="text-sm text-gray-600">You have</span>
-                        <span class="inline-flex items-center justify-center mx-2 px-2.5 py-0.5 rounded-full text-sm font-semibold {{ $pendingLeaves > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200' }}">{{ $pendingLeaves }}</span>
-                        <span class="text-sm text-gray-600">pending leave application{{ $pendingLeaves !== 1 ? 's' : '' }}.</span>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">You have</span>
+                        <span class="inline-flex items-center justify-center mx-2 px-2.5 py-0.5 rounded-full text-sm font-semibold {{ $pendingLeaves > 0 ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600' }}">{{ $pendingLeaves }}</span>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">pending leave application{{ $pendingLeaves !== 1 ? 's' : '' }}.</span>
                     </div>
                     <a href="{{ route('leave.index') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
                         View Leaves
@@ -288,29 +345,29 @@
 
             @if(Auth::user()->isIntern())
             <!-- Supervisor Information -->
-            <div class="rounded-2xl shadow-sm border border-gray-100 bg-white overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center">
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
                     <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
-                    <h3 class="text-base font-semibold text-gray-800">Supervisor Information</h3>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Supervisor Information</h3>
                 </div>
                 <div class="p-6">
                     @if(Auth::user()->supervisor)
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-gray-50 rounded-xl p-4">
-                                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Name</div>
-                                <div class="text-sm font-semibold text-gray-900">{{ Auth::user()->supervisor->name }}</div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Name</div>
+                                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ Auth::user()->supervisor->name }}</div>
                             </div>
-                            <div class="bg-gray-50 rounded-xl p-4">
-                                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Email</div>
-                                <div class="text-sm font-semibold text-gray-900">{{ Auth::user()->supervisor->email }}</div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Email</div>
+                                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ Auth::user()->supervisor->email }}</div>
                             </div>
-                            <div class="bg-gray-50 rounded-xl p-4">
-                                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Department</div>
-                                <div class="text-sm font-semibold text-gray-900">{{ Auth::user()->supervisor->department->name ?? 'N/A' }}</div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Department</div>
+                                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ Auth::user()->supervisor->department->name ?? 'N/A' }}</div>
                             </div>
-                            <div class="bg-gray-50 rounded-xl p-4 flex items-center">
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 flex items-center">
                                 <a href="{{ route('supervisor.show') }}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
                                     View Supervisor Details
                                     <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,8 +377,8 @@
                             </div>
                         </div>
                     @else
-                        <div class="text-center py-4 text-gray-400">
-                            <svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="text-center py-4 text-gray-400 dark:text-gray-500">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                             </svg>
                             <p class="text-sm">No supervisor assigned.</p>
@@ -331,25 +388,25 @@
             </div>
 
             <!-- Internship Details -->
-            <div class="rounded-2xl shadow-sm border border-gray-100 bg-white overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center">
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
                     <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
-                    <h3 class="text-base font-semibold text-gray-800">Internship Details</h3>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Internship Details</h3>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-gray-50 rounded-xl p-4">
-                            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Start Date</div>
-                            <div class="text-sm font-semibold text-gray-900">{{ Auth::user()->internship_start_date ? Auth::user()->internship_start_date->format('M d, Y') : 'N/A' }}</div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Start Date</div>
+                            <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ Auth::user()->internship_start_date ? Auth::user()->internship_start_date->format('M d, Y') : 'N/A' }}</div>
                         </div>
-                        <div class="bg-gray-50 rounded-xl p-4">
-                            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">End Date</div>
-                            <div class="text-sm font-semibold text-gray-900">{{ Auth::user()->internship_end_date ? Auth::user()->internship_end_date->format('M d, Y') : 'N/A' }}</div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">End Date</div>
+                            <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ Auth::user()->internship_end_date ? Auth::user()->internship_end_date->format('M d, Y') : 'N/A' }}</div>
                         </div>
-                        <div class="md:col-span-2 bg-gray-50 rounded-xl p-4">
-                            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Status</div>
+                        <div class="md:col-span-2 bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                            <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Status</div>
                             @if(Auth::user()->internship_end_date && Auth::user()->internship_end_date->isPast())
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">Completed</span>
                             @elseif(Auth::user()->internship_start_date && Auth::user()->internship_start_date->isFuture())

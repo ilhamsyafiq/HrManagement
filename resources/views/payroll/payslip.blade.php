@@ -30,6 +30,7 @@
 <body>
     <div class="no-print" style="text-align: center; padding: 15px; background: #f3f4f6;">
         <button onclick="window.print()" style="padding: 8px 20px; background: #4f46e5; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Print Payslip</button>
+        <a href="{{ route('payroll.payslip.pdf', $payroll) }}" style="margin-left: 10px; padding: 8px 20px; background: #059669; color: white; border-radius: 8px; text-decoration: none; font-size: 14px;">Download PDF</a>
         <a href="{{ route('payroll.show', $payroll) }}" style="margin-left: 10px; color: #6b7280; text-decoration: none;">Back</a>
     </div>
 

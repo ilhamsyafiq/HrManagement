@@ -25,7 +25,7 @@ class RoleResource extends Resource
     /**
      * Core roles that must not be deleted.
      */
-    protected static array $coreRoles = ['Admin', 'HR', 'Supervisor', 'Employee'];
+    protected static array $coreRoles = ['Super Admin', 'Admin', 'Supervisor', 'Employee', 'Intern'];
 
     public static function form(Form $form): Form
     {
@@ -73,7 +73,12 @@ class RoleResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->requiresConfirmation(),
+                        ->requiresConfirmation()
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
+                            $records
+                                ->reject(fn (Role $record) => in_array($record->name, static::$coreRoles))
+                                ->each->delete();
+                        }),
                 ]),
             ]);
     }

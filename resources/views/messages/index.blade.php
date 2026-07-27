@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
             {{ __('Messages') }}
         </h2>
     </x-slot>
@@ -10,24 +10,24 @@
 
             {{-- Flash Message --}}
             @if(session('success'))
-                <div class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 flex items-center gap-3">
+                <div class="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/30 px-5 py-4 flex items-center gap-3">
                     <svg class="w-5 h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <span class="text-sm font-medium text-green-700">{{ session('success') }}</span>
+                    <span class="text-sm font-medium text-green-700 dark:text-green-300">{{ session('success') }}</span>
                 </div>
             @endif
 
             {{-- Main Card --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
 
                 {{-- Header with Compose Button --}}
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
-                        <h3 class="text-base font-semibold text-gray-900">Messages</h3>
+                        <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Messages</h3>
                         @if($unreadCount > 0)
                             <span class="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
                                 {{ $unreadCount }} unread
@@ -43,7 +43,7 @@
                 </div>
 
                 {{-- Tabs --}}
-                <div class="border-b border-gray-100">
+                <div class="border-b border-gray-100 dark:border-gray-700">
                     <div class="flex">
                         <button onclick="switchTab('inbox')" id="tab-inbox" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-indigo-500 text-indigo-600 transition-colors duration-200">
                             Inbox
@@ -51,7 +51,7 @@
                                 <span class="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-700">{{ $unreadCount }}</span>
                             @endif
                         </button>
-                        <button onclick="switchTab('sent')" id="tab-sent" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                        <button onclick="switchTab('sent')" id="tab-sent" class="tab-btn px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200">
                             Sent
                         </button>
                     </div>
@@ -66,11 +66,11 @@
                             $displayTime = $lastReply ? $lastReply->created_at : $msg->created_at;
                             $otherUser = $msg->sender_id === auth()->id() ? $msg->receiver : $msg->sender;
                         @endphp
-                        <a href="{{ route('messages.show', $msg) }}" class="block px-6 py-4 border-b border-gray-50 hover:bg-gray-50/60 transition-colors duration-150 {{ $hasUnread ? 'bg-indigo-50/50' : '' }}">
+                        <a href="{{ route('messages.show', $msg) }}" class="block px-6 py-4 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/60 dark:hover:bg-gray-700 transition-colors duration-150 {{ $hasUnread ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : '' }}">
                             <div class="flex items-start gap-4">
                                 {{-- Avatar --}}
-                                <div class="shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                    <span class="text-sm font-semibold text-indigo-600">{{ strtoupper(substr($otherUser->name ?? 'U', 0, 1)) }}</span>
+                                <div class="shrink-0 w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                                    <span class="text-sm font-semibold text-indigo-600 dark:text-indigo-300">{{ strtoupper(substr($otherUser->name ?? 'U', 0, 1)) }}</span>
                                 </div>
                                 {{-- Content --}}
                                 <div class="flex-1 min-w-0">
@@ -79,20 +79,20 @@
                                             @if($hasUnread)
                                                 <span class="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
                                             @endif
-                                            <span class="text-sm font-semibold text-gray-900 truncate">{{ $otherUser->name ?? 'Unknown User' }}</span>
+                                            <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{{ $otherUser->name ?? 'Unknown User' }}</span>
                                         </div>
-                                        <span class="text-xs text-gray-400 shrink-0">{{ $displayTime->diffForHumans() }}</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">{{ $displayTime->diffForHumans() }}</span>
                                     </div>
                                     @if($msg->subject)
-                                        <p class="text-sm font-medium text-gray-700 truncate mt-0.5">{{ $msg->subject }}</p>
+                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate mt-0.5">{{ $msg->subject }}</p>
                                     @endif
-                                    <p class="text-sm text-gray-500 truncate mt-0.5">{{ Str::limit($msg->body, 80) }}</p>
-                                    @if($msg->replies->count() > 0 || $msg->replies()->count() > 0)
-                                        <span class="inline-flex items-center gap-1 mt-1 text-xs text-gray-400">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">{{ Str::limit($msg->body, 80) }}</p>
+                                    @if($msg->replies->count() > 0)
+                                        <span class="inline-flex items-center gap-1 mt-1 text-xs text-gray-400 dark:text-gray-500">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                                             </svg>
-                                            {{ $msg->replies()->count() }} {{ Str::plural('reply', $msg->replies()->count()) }}
+                                            {{ $msg->replies->count() }} {{ Str::plural('reply', $msg->replies->count()) }}
                                         </span>
                                     @endif
                                 </div>
@@ -100,10 +100,10 @@
                         </a>
                     @empty
                         <div class="px-6 py-12 text-center">
-                            <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                             </svg>
-                            <p class="text-sm text-gray-500">Your inbox is empty.</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Your inbox is empty.</p>
                         </div>
                     @endforelse
                 </div>
@@ -111,28 +111,28 @@
                 {{-- Sent Tab --}}
                 <div id="panel-sent" class="tab-panel hidden">
                     @forelse($sent as $msg)
-                        <a href="{{ route('messages.show', $msg) }}" class="block px-6 py-4 border-b border-gray-50 hover:bg-gray-50/60 transition-colors duration-150">
+                        <a href="{{ route('messages.show', $msg) }}" class="block px-6 py-4 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50/60 dark:hover:bg-gray-700 transition-colors duration-150">
                             <div class="flex items-start gap-4">
                                 {{-- Avatar --}}
-                                <div class="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                    <span class="text-sm font-semibold text-gray-500">{{ strtoupper(substr($msg->receiver->name ?? 'U', 0, 1)) }}</span>
+                                <div class="shrink-0 w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                                    <span class="text-sm font-semibold text-gray-500 dark:text-gray-400">{{ strtoupper(substr($msg->receiver->name ?? 'U', 0, 1)) }}</span>
                                 </div>
                                 {{-- Content --}}
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center justify-between gap-2">
-                                        <span class="text-sm font-semibold text-gray-900 truncate">To: {{ $msg->receiver->name ?? 'Unknown User' }}</span>
-                                        <span class="text-xs text-gray-400 shrink-0">{{ $msg->created_at->diffForHumans() }}</span>
+                                        <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">To: {{ $msg->receiver->name ?? 'Unknown User' }}</span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">{{ $msg->created_at->diffForHumans() }}</span>
                                     </div>
                                     @if($msg->subject)
-                                        <p class="text-sm font-medium text-gray-700 truncate mt-0.5">{{ $msg->subject }}</p>
+                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate mt-0.5">{{ $msg->subject }}</p>
                                     @endif
-                                    <p class="text-sm text-gray-500 truncate mt-0.5">{{ Str::limit($msg->body, 80) }}</p>
-                                    @if($msg->replies()->count() > 0)
-                                        <span class="inline-flex items-center gap-1 mt-1 text-xs text-gray-400">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">{{ Str::limit($msg->body, 80) }}</p>
+                                    @if($msg->replies->count() > 0)
+                                        <span class="inline-flex items-center gap-1 mt-1 text-xs text-gray-400 dark:text-gray-500">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                                             </svg>
-                                            {{ $msg->replies()->count() }} {{ Str::plural('reply', $msg->replies()->count()) }}
+                                            {{ $msg->replies->count() }} {{ Str::plural('reply', $msg->replies->count()) }}
                                         </span>
                                     @endif
                                 </div>
@@ -140,10 +140,10 @@
                         </a>
                     @empty
                         <div class="px-6 py-12 text-center">
-                            <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                             </svg>
-                            <p class="text-sm text-gray-500">No sent messages yet.</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">No sent messages yet.</p>
                         </div>
                     @endforelse
                 </div>
@@ -159,7 +159,7 @@
             // Reset all tabs
             document.querySelectorAll('.tab-btn').forEach(b => {
                 b.classList.remove('border-indigo-500', 'text-indigo-600');
-                b.classList.add('border-transparent', 'text-gray-500');
+                b.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
             });
 
             // Show selected panel

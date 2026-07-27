@@ -15,10 +15,10 @@ class MessageController extends Controller
         // Inbox: received thread-starters (parent_id is null) with unread counts
         $inbox = Message::where('receiver_id', $user->id)
             ->whereNull('parent_id')
-            ->with(['sender', 'replies' => function ($q) use ($user) {
+            ->with(['sender', 'receiver', 'replies' => function ($q) use ($user) {
                 $q->where('receiver_id', $user->id)->where('is_read', false);
             }])
-            ->latest()
+            ->orderBy('updated_at', 'desc')
             ->get();
 
         // Also include threads where user received a reply but the original was sent by them
@@ -30,7 +30,7 @@ class MessageController extends Controller
             ->with(['sender', 'receiver', 'replies' => function ($q) use ($user) {
                 $q->where('receiver_id', $user->id)->where('is_read', false);
             }])
-            ->latest()
+            ->orderBy('updated_at', 'desc')
             ->get();
 
         // Merge and deduplicate
@@ -39,8 +39,8 @@ class MessageController extends Controller
         // Sent: messages sent by user (thread starters)
         $sent = Message::where('sender_id', $user->id)
             ->whereNull('parent_id')
-            ->with('receiver')
-            ->latest()
+            ->with(['sender', 'receiver'])
+            ->orderBy('updated_at', 'desc')
             ->get();
 
         // Unread count
@@ -140,12 +140,19 @@ class MessageController extends Controller
             return back()->withErrors(['receiver_id' => 'You are not allowed to message this user.'])->withInput();
         }
 
-        Message::create([
+        $message = Message::create([
             'sender_id' => $user->id,
             'receiver_id' => $request->receiver_id,
             'subject' => $request->subject,
             'body' => $request->body,
         ]);
+
+        \App\Models\User::find($request->receiver_id)?->notify(new \App\Notifications\SystemNotification(
+            'New message from ' . $user->name,
+            \Illuminate\Support\Str::limit($request->body, 80),
+            route('messages.show', $message->id),
+            'mail'
+        ));
 
         return redirect()->route('messages.index')->with('success', 'Message sent successfully.');
     }
@@ -179,6 +186,13 @@ class MessageController extends Controller
             'body' => $request->body,
             'parent_id' => $rootMessage->id,
         ]);
+
+        \App\Models\User::find($receiverId)?->notify(new \App\Notifications\SystemNotification(
+            'New reply from ' . $user->name,
+            \Illuminate\Support\Str::limit($request->body, 80),
+            route('messages.show', $rootMessage->id),
+            'mail'
+        ));
 
         // Touch the parent so it sorts to top
         $rootMessage->touch();

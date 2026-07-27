@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Leave;
 use App\Models\AuditLog;
+use App\Services\LeaveBalanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +16,9 @@ class LeaveController extends Controller
         $user = Auth::user();
         $leaves = Leave::where('user_id', $user->id)->orderBy('created_at', 'desc')->paginate(20);
 
-        return view('leave.index', compact('leaves'));
+        $leaveBalance = LeaveBalanceService::for($user);
+
+        return view('leave.index', compact('leaves', 'leaveBalance'));
     }
 
     public function create()
@@ -98,6 +101,13 @@ class LeaveController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
+        $leave->user->notify(new \App\Notifications\SystemNotification(
+            'Leave ' . $newStatus,
+            $message,
+            route('leave.show', $leave->id),
+            'check'
+        ));
+
         return redirect()->back()->with('success', $message);
     }
 
@@ -132,6 +142,13 @@ class LeaveController extends Controller
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+
+        $leave->user->notify(new \App\Notifications\SystemNotification(
+            'Leave rejected',
+            'Your leave was rejected. Reason: ' . $request->reason,
+            route('leave.show', $leave->id),
+            'x'
+        ));
 
         return redirect()->back()->with('success', 'Leave rejected');
     }

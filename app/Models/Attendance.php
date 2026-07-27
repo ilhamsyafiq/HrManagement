@@ -49,9 +49,11 @@ class Attendance extends Model
         if (!$workHours && $this->clock_in) {
             $end = $this->clock_out ?? now('Asia/Kuala_Lumpur');
             $totalMinutes = ($end->timestamp - $this->clock_in->timestamp) / 60;
-            $breakMinutes = $this->breaks()->whereNotNull('break_out')->sum('duration_minutes');
+            // Use the eager-loaded relation when available to avoid N+1 in listings.
+            $breaks = $this->relationLoaded('breaks') ? $this->breaks : $this->breaks()->get();
+            $breakMinutes = $breaks->whereNotNull('break_out')->sum('duration_minutes');
             // Subtract active break time too
-            $activeBreak = $this->breaks()->whereNull('break_out')->first();
+            $activeBreak = $breaks->whereNull('break_out')->first();
             if ($activeBreak) {
                 $breakMinutes += now('Asia/Kuala_Lumpur')->diffInMinutes($activeBreak->break_in);
             }
@@ -63,6 +65,89 @@ class Attendance extends Model
         }
 
         $totalMinutes = round($workHours * 60);
+        $hours = intdiv((int) $totalMinutes, 60);
+        $minutes = (int) $totalMinutes % 60;
+
+        return "{$hours}h {$minutes}m";
+    }
+
+    /**
+     * Numeric worked hours for this attendance (reuses stored/derived value).
+     */
+    protected function numericWorkHours(): float
+    {
+        $workHours = $this->total_work_hours;
+
+        // Fall back to on-the-fly calculation when there is no stored value.
+        if (!$workHours && $this->clock_in) {
+            $end = $this->clock_out ?? now('Asia/Kuala_Lumpur');
+            $totalMinutes = ($end->timestamp - $this->clock_in->timestamp) / 60;
+            $breaks = $this->relationLoaded('breaks') ? $this->breaks : $this->breaks()->get();
+            $breakMinutes = $breaks->whereNotNull('break_out')->sum('duration_minutes');
+            $activeBreak = $breaks->whereNull('break_out')->first();
+            if ($activeBreak) {
+                $breakMinutes += now('Asia/Kuala_Lumpur')->diffInMinutes($activeBreak->break_in);
+            }
+            $workHours = max(0, ($totalMinutes - $breakMinutes) / 60);
+        }
+
+        return (float) ($workHours ?? 0);
+    }
+
+    /**
+     * Standard paid daily hours for this attendance's user.
+     *
+     * Derived from the user's WorkingHour config (work_start -> work_end minus
+     * the configured break window) when available; otherwise falls back to the
+     * configurable default in config/hr.php.
+     */
+    protected function standardDailyHours(): float
+    {
+        $wh = WorkingHour::getForUser($this->user_id);
+
+        if ($wh && $wh->work_start && $wh->work_end) {
+            try {
+                $start = \Carbon\Carbon::parse($wh->work_start);
+                $end = \Carbon\Carbon::parse($wh->work_end);
+                $workMinutes = $end->diffInMinutes($start);
+
+                if ($wh->break_start && $wh->break_end) {
+                    $breakStart = \Carbon\Carbon::parse($wh->break_start);
+                    $breakEnd = \Carbon\Carbon::parse($wh->break_end);
+                    $workMinutes -= $breakEnd->diffInMinutes($breakStart);
+                }
+
+                if ($workMinutes > 0) {
+                    return $workMinutes / 60;
+                }
+            } catch (\Exception $e) {
+                // Fall through to default below.
+            }
+        }
+
+        return (float) config('hr.standard_daily_hours', 8);
+    }
+
+    /**
+     * Overtime hours = worked hours beyond the standard daily hours (>= 0).
+     */
+    public function getOvertimeHoursAttribute(): float
+    {
+        return max(0, round($this->numericWorkHours() - $this->standardDailyHours(), 2));
+    }
+
+    /**
+     * Human-friendly overtime, e.g. "1h 30m" or "-" when there is none.
+     */
+    public function getFormattedOvertimeAttribute(): string
+    {
+        $overtime = $this->overtime_hours;
+
+        if ($overtime <= 0) {
+            return '-';
+        }
+
+        $totalMinutes = round($overtime * 60);
         $hours = intdiv((int) $totalMinutes, 60);
         $minutes = (int) $totalMinutes % 60;
 

@@ -41,7 +41,8 @@
                                     <td class="px-6 py-4 text-sm">
                                         <a href="{{ route('payroll.show', $payroll) }}" class="text-blue-600 hover:text-blue-800 mr-2">View</a>
                                         @if($payroll->status === 'Paid')
-                                            <a href="{{ route('payroll.payslip', $payroll) }}" class="text-indigo-600 hover:text-indigo-800">Payslip</a>
+                                            <a href="{{ route('payroll.payslip', $payroll) }}" class="text-indigo-600 hover:text-indigo-800 mr-2">Payslip</a>
+                                            <a href="{{ route('payroll.payslip.pdf', $payroll) }}" class="text-emerald-600 hover:text-emerald-800">Download PDF</a>
                                         @endif
                                     </td>
                                 </tr>

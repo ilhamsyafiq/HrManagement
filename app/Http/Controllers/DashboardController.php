@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Document;
 use App\Models\Leave;
 use App\Models\Role;
+use App\Services\LeaveBalanceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,14 +15,15 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
+        $user = Auth::user()->load(['supervisor.department', 'role']);
         $today = Carbon::now('Asia/Kuala_Lumpur')->toDateString();
 
         // Today's attendance with breaks eager loaded
         $todayAttendance = Attendance::with('breaks')->where('user_id', $user->id)->where('date', $today)->first();
 
         // Recent attendances
-        $recentAttendances = Attendance::where('user_id', $user->id)
+        $recentAttendances = Attendance::with('breaks')
+            ->where('user_id', $user->id)
             ->orderBy('date', 'desc')
             ->take(7)
             ->get();
@@ -31,6 +33,9 @@ class DashboardController extends Controller
 
         // Recent leaves
         $recentLeaves = Leave::where('user_id', $user->id)->orderBy('created_at', 'desc')->take(5)->get();
+
+        // Leave balance for the current calendar year
+        $leaveBalance = LeaveBalanceService::for($user);
 
         // Important announcements for popup (high priority or upcoming within 3 days)
         $popupAnnouncements = Announcement::with('creator')
@@ -65,11 +70,11 @@ class DashboardController extends Controller
 
             return view('intern.dashboard', compact(
                 'todayAttendance', 'recentAttendances', 'pendingLeaves', 'recentLeaves',
-                'reports', 'reportStats', 'popupAnnouncements'
+                'reports', 'reportStats', 'popupAnnouncements', 'leaveBalance'
             ));
         }
 
-        return view('dashboard', compact('todayAttendance', 'recentAttendances', 'pendingLeaves', 'recentLeaves', 'popupAnnouncements'));
+        return view('dashboard', compact('todayAttendance', 'recentAttendances', 'pendingLeaves', 'recentLeaves', 'popupAnnouncements', 'leaveBalance'));
     }
 
     public function showSupervisor()
@@ -78,7 +83,7 @@ class DashboardController extends Controller
 
         if ($user->isSupervisor()) {
             // Supervisors view their interns
-            $interns = $user->subordinates()->where('is_intern', true)->get();
+            $interns = $user->subordinates()->with(['role', 'department'])->where('is_intern', true)->get();
             $internRole = Role::where('name', 'Intern')->first();
 
             return view('supervisor.show', compact('interns', 'internRole'));
@@ -91,7 +96,8 @@ class DashboardController extends Controller
             $supervisor = $user->supervisor;
 
             // Recent attendances of supervisor
-            $recentAttendances = Attendance::where('user_id', $supervisor->id)
+            $recentAttendances = Attendance::with('breaks')
+                ->where('user_id', $supervisor->id)
                 ->orderBy('date', 'desc')
                 ->take(7)
                 ->get();
