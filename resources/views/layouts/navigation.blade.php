@@ -157,6 +157,10 @@
                         </x-dropdown-link>
                         @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                             <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
+                            <a href="{{ url('/panel') }}" class="block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600">
+                                {{ __('Admin Panel (Filament)') }} &rarr;
+                            </a>
+                            <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
                             <x-dropdown-link :href="route('admin.working-hours')">
                                 {{ __('Working Hours') }}
                             </x-dropdown-link>
@@ -221,6 +225,7 @@
                 <x-responsive-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.*')">{{ __('Messages') }}</x-responsive-nav-link>
 
                 <div class="px-4 pt-3 pb-1"><p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Settings') }}</p></div>
+                <a href="{{ url('/panel') }}" class="block ps-3 pe-4 py-2 text-base font-semibold text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700">{{ __('Admin Panel (Filament)') }} &rarr;</a>
                 <x-responsive-nav-link :href="route('admin.working-hours')" :active="request()->routeIs('admin.working-hours')">{{ __('Working Hours') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.office-locations')" :active="request()->routeIs('admin.office-locations')">{{ __('Geofencing') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.audit-logs')" :active="request()->routeIs('admin.audit-logs')">{{ __('Audit Logs') }}</x-responsive-nav-link>

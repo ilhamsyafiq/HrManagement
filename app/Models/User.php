@@ -3,14 +3,25 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * Only Admin and Super Admin may access the Filament /admin panel.
+     * Employee self-service stays in the existing Blade UI.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->isAdmin() || $this->isSuperAdmin();
+    }
 
     protected $with = ['role'];
 

@@ -1,16 +1,14 @@
-# TODO: Make Admin Reports Generate Buttons Work
+# TODO
 
-## Current Status
-- Admin reports page has 6 generate buttons that are non-functional
-- Need to implement PDF generation for each report type
+## Done
+- [x] Admin Reports generate buttons — routes, `AdminController` generate* methods, and wired
+      forms are all present and working (the original "non-functional" note was stale).
+- [x] Migrated admin/HR side to a **Filament v3 panel** at `/panel` (12 resources).
+- [x] Fixed HTTPS forcing to production-only in `AppServiceProvider`.
 
-## Tasks
-- [ ] Add POST routes for report generation in routes/web.php
-- [ ] Implement generateAttendanceReport method in AdminController
-- [ ] Implement generateLeaveReport method in AdminController
-- [ ] Implement generateEmployeeReport method in AdminController
-- [ ] Implement generateDepartmentReport method in AdminController
-- [ ] Implement generateMonthlySummaryReport method in AdminController
-- [ ] Implement generateAuditReport method in AdminController
-- [ ] Update admin/reports.blade.php to make buttons submit forms
-- [ ] Test PDF generation for each report type
+## Next
+- [ ] Add Filament dashboard widgets (headcount, pending approvals, today's attendance).
+- [ ] Enforce geofence blocking on clock-in (currently only flags out-of-range).
+- [ ] Configure a real mail transport (currently `MAIL_MAILER=log`).
+- [ ] Payslip PDF export.
+- [ ] Consider retiring legacy Blade `/admin/*` screens once Filament is validated.
