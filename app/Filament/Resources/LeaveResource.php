@@ -61,8 +61,11 @@ class LeaveResource extends Resource
                     ->columnSpanFull(),
                 Forms\Components\FileUpload::make('document_path')
                     ->label('Supporting document')
-                    ->disk('public')
+                    ->disk('local')
+                    ->visibility('private')
                     ->directory('leaves')
+                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                    ->maxSize(2048)
                     ->columnSpanFull(),
             ]);
     }

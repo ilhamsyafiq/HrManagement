@@ -82,6 +82,22 @@
                             </div>
                         </div>
 
+                        <!-- Accurate PDF Preview (iframe) -->
+                        <div class="rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="bg-gray-50/50 border-b border-gray-100 px-5 py-4">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-5 h-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                                        <path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    <h3 class="text-base font-semibold text-gray-900">Review Report</h3>
+                                </div>
+                            </div>
+                            <div class="p-5">
+                                <iframe src="{{ route('reports.pdf', $document->id) }}" class="w-full rounded-xl border border-gray-200 bg-gray-50" style="height: 600px;" title="Report PDF"></iframe>
+                            </div>
+                        </div>
+
                         <!-- PDF Editor - Bottom Section -->
                         <div class="rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <div class="bg-gray-50/50 border-b border-gray-100 px-5 py-4">
@@ -90,7 +106,7 @@
                                         <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
                                         <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
                                     </svg>
-                                    <h3 class="text-base font-semibold text-gray-900">Step 2: Edit Document</h3>
+                                    <h3 class="text-base font-semibold text-gray-900">Step 2: Place Signature &amp; Comments (optional)</h3>
                                 </div>
                             </div>
                             <div class="p-5">
@@ -151,6 +167,17 @@
                                         @enderror
                                     </div>
 
+                                    <!-- Save as default signature -->
+                                    <div class="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+                                        <label for="save_default" class="flex items-start gap-3 cursor-pointer">
+                                            <input type="checkbox" id="save_default" name="save_default" value="1" checked class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                            <span>
+                                                <span class="block text-sm font-medium text-gray-800">Save as my default signature</span>
+                                                <span class="block text-xs text-gray-500 mt-0.5">Store this signature so you can sign future reports with one click.</span>
+                                            </span>
+                                        </label>
+                                    </div>
+
                                     <!-- Hidden signature data -->
                                     <input type="hidden" id="signature-data" name="signature_data">
 
@@ -193,20 +220,22 @@
             });
         }
 
-        try {
-            if (typeof SignaturePad === 'undefined') {
-                throw new Error('SignaturePad library not loaded');
-            }
-            if (typeof pdfjsLib === 'undefined') {
-                throw new Error('PDF.js library not loaded');
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Error loading libraries: ' + e.message + '. Please refresh the page.');
-            return;
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
+            // Guard against missing libraries. Keeping this inside the callback
+            // avoids an illegal top-level `return;` that would break the whole script.
+            try {
+                if (typeof SignaturePad === 'undefined') {
+                    throw new Error('SignaturePad library not loaded');
+                }
+                if (typeof pdfjsLib === 'undefined') {
+                    throw new Error('PDF.js library not loaded');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error loading libraries: ' + e.message + '. Please refresh the page.');
+                return;
+            }
+
             const pdfCanvas = document.getElementById('pdf-canvas');
             const annotationLayer = document.getElementById('annotation-layer');
             const signatureCanvas = document.getElementById('signature-canvas');

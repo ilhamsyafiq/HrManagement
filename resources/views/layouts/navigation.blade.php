@@ -73,7 +73,9 @@
                                 <a href="{{ route('attendance.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">{{ __('Attendance') }}</a>
                                 <a href="{{ route('leave.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">{{ __('Leave') }}</a>
                                 <a href="{{ route('claims.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">{{ __('Claims') }}</a>
+                                @if (config('hr.payroll_enabled'))
                                 <a href="{{ route('payroll.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">{{ __('Payslip') }}</a>
+                                @endif
                             </div>
                         </div>
 
@@ -171,6 +173,10 @@
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Account Settings') }}
                         </x-dropdown-link>
+                        {{-- Temporary: Report Bug / Feedback (available to all users) --}}
+                        <x-dropdown-link :href="route('feedback.create')">
+                            {{ __('Report Bug / Feedback') }}
+                        </x-dropdown-link>
                         @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
                             <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
                             <a href="{{ url('/panel') }}" class="block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600">
@@ -254,7 +260,9 @@
                 <x-responsive-nav-link :href="route('attendance.index')" :active="request()->routeIs('attendance.*')">{{ __('Attendance') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('leave.index')" :active="request()->routeIs('leave.*')">{{ __('Leave') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('claims.index')" :active="request()->routeIs('claims.*')">{{ __('Claims') }}</x-responsive-nav-link>
+                @if (config('hr.payroll_enabled'))
                 <x-responsive-nav-link :href="route('payroll.index')" :active="request()->routeIs('payroll.*')">{{ __('Payslip') }}</x-responsive-nav-link>
+                @endif
 
                 <div class="px-4 pt-3 pb-1"><p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Info') }}</p></div>
                 <x-responsive-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')">{{ __('Calendar & Holidays') }}</x-responsive-nav-link>
@@ -281,6 +289,8 @@
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('employee-profile.show')">{{ __('My Profile') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('profile.edit')">{{ __('Account Settings') }}</x-responsive-nav-link>
+                {{-- Temporary: Report Bug / Feedback (available to all users) --}}
+                <x-responsive-nav-link :href="route('feedback.create')" :active="request()->routeIs('feedback.*')">{{ __('Report Bug / Feedback') }}</x-responsive-nav-link>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <x-responsive-nav-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">

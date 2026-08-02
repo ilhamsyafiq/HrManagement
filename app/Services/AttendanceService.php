@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\BreakRecord;
 use App\Models\AuditLog;
 use App\Models\WorkingHour;
+use App\Services\ScheduleResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -56,12 +57,14 @@ class AttendanceService
             'location_flag_reason' => !empty($geofenceResult['flags']) ? $geofenceResult['flag_reason'] : null,
         ];
 
-        // Check for late clock-in
-        $workingHours = WorkingHour::getForUser($user->id);
-        if ($workingHours) {
+        // Check for late clock-in against today's scheduled shift.
+        $schedule = ScheduleResolver::forUser($user, Carbon::parse($today, 'Asia/Kuala_Lumpur'));
+        // Flexible shifts only need total hours fulfilled: never flag late.
+        // Part-timers are task-based / flexible hours: never flag late.
+        if ($schedule && $schedule['start'] && empty($schedule['is_flexible']) && ! $user->isPartTime()) {
             $clockInTime = Carbon::now('Asia/Kuala_Lumpur');
-            $scheduledStart = Carbon::parse($today . ' ' . $workingHours->work_start, 'Asia/Kuala_Lumpur');
-            $threshold = $workingHours->late_threshold_minutes;
+            $scheduledStart = Carbon::parse($today . ' ' . $schedule['start'], 'Asia/Kuala_Lumpur');
+            $threshold = $schedule['late_threshold'];
             $lateMinutes = max(0, $clockInTime->diffInMinutes($scheduledStart, false) * -1);
             if ($lateMinutes > $threshold) {
                 $data['is_late'] = true;
@@ -130,11 +133,13 @@ class AttendanceService
                 : 'Clock-out: ' . $geofenceResult['flag_reason'];
         }
 
-        // Check for early leave
-        $workingHours = WorkingHour::getForUser($user->id);
-        if ($workingHours) {
-            $scheduledEnd = Carbon::parse($today . ' ' . $workingHours->work_end, 'Asia/Kuala_Lumpur');
-            $threshold = $workingHours->early_leave_threshold_minutes;
+        // Check for early leave against today's scheduled shift end.
+        $schedule = ScheduleResolver::forUser($user, Carbon::parse($today, 'Asia/Kuala_Lumpur'));
+        // Flexible shifts only need total hours fulfilled: never flag early leave.
+        // Part-timers are task-based / flexible hours: never flag early leave.
+        if ($schedule && $schedule['end'] && empty($schedule['is_flexible']) && ! $user->isPartTime()) {
+            $scheduledEnd = Carbon::parse($today . ' ' . $schedule['end'], 'Asia/Kuala_Lumpur');
+            $threshold = $schedule['early_threshold'];
             $earlyMinutes = max(0, $scheduledEnd->diffInMinutes($clockOut, false));
             if ($earlyMinutes > $threshold) {
                 $updateData['is_early_leave'] = true;

@@ -34,7 +34,19 @@ class NotificationController extends Controller
         $notification->markAsRead();
 
         if ($request->filled('redirect')) {
-            return redirect()->to($request->query('redirect'));
+            $target = $request->query('redirect');
+
+            // Open-redirect guard: only honor internal, same-app relative paths.
+            // Must start with a single '/' (not '//' or '/\', which browsers treat
+            // as protocol-relative absolute URLs to another host) and must not
+            // contain a scheme like "http:" or "javascript:".
+            if (is_string($target)
+                && preg_match('#^/(?![/\\\\])#', $target)
+                && ! preg_match('#^\s*[a-z][a-z0-9+.\-]*:#i', $target)) {
+                return redirect()->to($target);
+            }
+
+            return redirect()->route('notifications.index');
         }
 
         return redirect()->back()->with('success', 'Notification marked as read.');

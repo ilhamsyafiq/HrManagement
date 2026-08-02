@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MessageController extends Controller
 {
@@ -122,7 +123,29 @@ class MessageController extends Controller
             $colleagues = $recipients->filter(fn($r) => $r->supervisor_id === $user->supervisor_id && $r->id !== $user->id);
         }
 
-        return view('messages.create', compact('recipients', 'grouped', 'byDept', 'colleagues'));
+        // Bulk / grouped messaging is available to supervisors and admins
+        $canBulk = $user->isSupervisor() || $user->isAdmin() || $user->isSuperAdmin();
+
+        // Counts for nice bulk-group labels (subordinates relative to current user)
+        $subordinatesCount = 0;
+        $internsCount = 0;
+        $employeesCount = 0;
+        if ($canBulk) {
+            $subordinatesCount = $user->subordinates()->count();
+            $internsCount = $user->subordinates()->where('is_intern', true)->count();
+            $employeesCount = $user->subordinates()->where('is_intern', false)->count();
+        }
+
+        return view('messages.create', compact(
+            'recipients',
+            'grouped',
+            'byDept',
+            'colleagues',
+            'canBulk',
+            'subordinatesCount',
+            'internsCount',
+            'employeesCount'
+        ));
     }
 
     public function store(Request $request)
@@ -200,6 +223,85 @@ class MessageController extends Controller
         return redirect()->route('messages.show', $rootMessage->id)->with('success', 'Reply sent.');
     }
 
+    public function bulkStore(Request $request)
+    {
+        $user = auth()->user();
+
+        // Only supervisors and admins may send bulk / grouped messages
+        if (!($user->isSupervisor() || $user->isAdmin() || $user->isSuperAdmin())) {
+            abort(403, 'You are not allowed to send bulk messages.');
+        }
+
+        $request->validate([
+            'subject' => 'nullable|string|max:255',
+            'body' => 'required|string|max:5000',
+            'group' => 'nullable|in:subordinates,interns,employees',
+            'receiver_ids' => 'nullable|array',
+            'receiver_ids.*' => 'integer|exists:users,id',
+        ]);
+
+        // Resolve the recipient id list
+        $recipientIds = collect();
+
+        if ($request->filled('group')) {
+            switch ($request->group) {
+                case 'subordinates':
+                    $recipientIds = $user->subordinates()->pluck('id');
+                    break;
+                case 'interns':
+                    $recipientIds = $user->subordinates()->where('is_intern', true)->pluck('id');
+                    break;
+                case 'employees':
+                    $recipientIds = $user->subordinates()->where('is_intern', false)->pluck('id');
+                    break;
+            }
+        } elseif ($request->filled('receiver_ids')) {
+            // Explicit selection: intersect with allowed set to prevent abuse
+            $allowedIds = $this->getAllowedRecipients($user)->pluck('id');
+            $recipientIds = collect($request->receiver_ids)
+                ->map(fn($id) => (int) $id)
+                ->intersect($allowedIds);
+        }
+
+        // Dedupe, exclude self and nulls
+        $recipientIds = $recipientIds
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->reject(fn($id) => $id === $user->id)
+            ->values();
+
+        if ($recipientIds->isEmpty()) {
+            return back()->withErrors(['group' => 'No valid recipients found for the selected group.'])->withInput();
+        }
+
+        $recipients = User::whereIn('id', $recipientIds)->get();
+
+        DB::transaction(function () use ($recipients, $user, $request) {
+            foreach ($recipients as $recipient) {
+                $message = Message::create([
+                    'sender_id' => $user->id,
+                    'receiver_id' => $recipient->id,
+                    'subject' => $request->subject,
+                    'body' => $request->body,
+                    'parent_id' => null,
+                ]);
+
+                $recipient->notify(new \App\Notifications\SystemNotification(
+                    'New message from ' . $user->name,
+                    \Illuminate\Support\Str::limit($request->body, 80),
+                    route('messages.show', $message->id),
+                    'mail'
+                ));
+            }
+        });
+
+        $count = $recipients->count();
+
+        return redirect()->route('messages.index')
+            ->with('success', "Message sent to {$count} recipient(s).");
+    }
+
     private function getAllowedRecipients(User $user)
     {
         if ($user->isSuperAdmin() || $user->isAdmin()) {
@@ -222,20 +324,52 @@ class MessageController extends Controller
                 ->get();
         }
 
-        // Employees / Interns: can message supervisor and department HOD
+        // Employees / Interns can message:
+        //  (a) their direct supervisor
+        //  (b) their department HOD
+        //  (c) all Admin + Super Admin users (HR)
+        //  (d) teammates: users sharing the same supervisor_id, and same-department members
         $recipientIds = collect();
 
+        // (a) direct supervisor
         if ($user->supervisor_id) {
             $recipientIds->push($user->supervisor_id);
         }
 
+        // (b) department HOD
         if ($user->department && $user->department->hod_id) {
             $recipientIds->push($user->department->hod_id);
         }
 
-        $recipientIds = $recipientIds->unique()->filter(function ($id) use ($user) {
-            return $id !== $user->id;
-        });
+        // (c) all Admin + Super Admin users (HR)
+        $adminIds = User::whereHas('role', function ($q) {
+            $q->whereIn('name', ['Admin', 'Super Admin']);
+        })->pluck('id');
+        $recipientIds = $recipientIds->merge($adminIds);
+
+        // (d) teammates sharing the same supervisor
+        if ($user->supervisor_id) {
+            $sameSupervisorIds = User::where('supervisor_id', $user->supervisor_id)
+                ->where('id', '!=', $user->id)
+                ->pluck('id');
+            $recipientIds = $recipientIds->merge($sameSupervisorIds);
+        }
+
+        // (d) same-department members
+        if ($user->department_id) {
+            $sameDeptIds = User::where('department_id', $user->department_id)
+                ->where('id', '!=', $user->id)
+                ->pluck('id');
+            $recipientIds = $recipientIds->merge($sameDeptIds);
+        }
+
+        // Dedupe, exclude self and nulls
+        $recipientIds = $recipientIds
+            ->filter()
+            ->unique()
+            ->reject(function ($id) use ($user) {
+                return $id === $user->id;
+            });
 
         return User::whereIn('id', $recipientIds)->orderBy('name')->get();
     }

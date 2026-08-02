@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8">
+    <div class="py-8" x-data="{ open: false, src: '', signMode: false, signAction: '', signManualUrl: '' }" @keydown.escape.window="open = false; signMode = false">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             @if(session('success'))
@@ -75,6 +75,10 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center gap-3">
                                             <a href="{{ route('reports.show', $report->id) }}" class="text-indigo-600 hover:text-indigo-800 transition duration-150">View</a>
+                                            <button type="button" @click="src='{{ route('reports.pdf', $report->id) }}'; open=true" class="text-purple-600 hover:text-purple-800 transition duration-150">Preview</button>
+                                            @if($report->status == 'signed' && $report->signed_path)
+                                                <button type="button" @click="src='{{ route('reports.pdf.signed', $report->id) }}'; open=true" class="text-emerald-600 hover:text-emerald-800 transition duration-150">View Signed</button>
+                                            @endif
                                             <a href="{{ route('reports.download', $report->id) }}" class="text-gray-600 hover:text-gray-800 transition duration-150">Download</a>
 
                                             {{-- Intern actions --}}
@@ -101,7 +105,9 @@
                                             {{-- Supervisor actions --}}
                                             @if(auth()->user()->isSupervisor())
                                                 @if($report->status == 'pending')
-                                                    <a href="{{ route('reports.sign.form', $report->id) }}" class="text-emerald-600 hover:text-emerald-800 font-semibold transition duration-150">Sign</a>
+                                                    <button type="button"
+                                                        @click="src='{{ route('reports.pdf', $report->id) }}'; signAction='{{ route('reports.quicksign', $report->id) }}'; signManualUrl='{{ route('reports.sign.form', $report->id) }}'; signMode=true; open=true;"
+                                                        class="text-emerald-600 hover:text-emerald-800 font-semibold transition duration-150">Sign</button>
                                                 @endif
                                                 @if($report->status == 'signed' && $report->signed_path)
                                                     <a href="{{ route('reports.download-signed', $report->id) }}" class="text-emerald-600 hover:text-emerald-800 transition duration-150">Download Signed</a>
@@ -140,6 +146,40 @@
                 </div>
             </div>
 
+        </div>
+
+        {{-- PDF Preview Modal --}}
+        <div x-show="open" x-cloak
+             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             style="display: none;">
+            {{-- Backdrop --}}
+            <div class="absolute inset-0 bg-black/60" @click="open = false; src = ''"></div>
+
+            {{-- Panel --}}
+            <div class="relative z-10 w-full max-w-5xl bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100" x-text="signMode ? 'Review & Sign Report' : 'Report Preview'"></h3>
+                    <button type="button" @click="open = false; src = ''; signMode = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition duration-150" aria-label="Close">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900">
+                    <iframe :src="src" class="w-full h-[80vh]"></iframe>
+                </div>
+                {{-- Sign actions (only shown when opened via the Sign button) --}}
+                <div x-show="signMode" class="flex flex-wrap items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <a :href="signManualUrl" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
+                        Sign manually
+                    </a>
+                    <form :action="signAction" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                            One-click Sign
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </x-app-layout>

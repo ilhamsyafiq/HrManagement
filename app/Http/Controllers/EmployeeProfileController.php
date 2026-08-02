@@ -72,8 +72,15 @@ class EmployeeProfileController extends Controller
             'job_title' => 'nullable|string|max:255',
             'hire_date' => 'nullable|date',
             'basic_salary' => 'nullable|numeric|min:0',
-            'profile_photo' => 'nullable|image|max:2048',
+            'profile_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
+
+        // Employer-owned fields must never be settable via employee self-service
+        // (prevents an employee inflating their own salary / job title / hire date,
+        // which feed payroll). Only an Admin / Super Admin may set these.
+        if (!$isAdmin) {
+            unset($validated['basic_salary'], $validated['job_title'], $validated['hire_date']);
+        }
 
         if ($request->hasFile('profile_photo')) {
             $path = $request->file('profile_photo')->store('profile-photos', 'public');
@@ -108,13 +115,14 @@ class EmployeeProfileController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'category' => 'required|in:Contract,Certificate,ID,Resume,Other',
-            'file' => 'required|file|max:10240',
+            'file' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
             'expiry_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',
         ]);
 
         $file = $request->file('file');
-        $path = $file->store('employee-documents', 'public');
+        // Private (local) disk: ID / contract documents must not be public.
+        $path = $file->store('employee-documents');
 
         EmployeeDocument::create([
             'user_id' => $userId,
@@ -140,7 +148,9 @@ class EmployeeProfileController extends Controller
             abort(403);
         }
 
-        return Storage::disk('public')->download($document->file_path, $document->file_name);
+        abort_unless(Storage::exists($document->file_path), 404);
+
+        return Storage::download($document->file_path, $document->file_name);
     }
 
     public function deleteDocument(EmployeeDocument $document)
@@ -152,7 +162,7 @@ class EmployeeProfileController extends Controller
             abort(403);
         }
 
-        Storage::disk('public')->delete($document->file_path);
+        Storage::delete($document->file_path);
         $document->delete();
 
         return redirect()->back()->with('success', 'Document deleted successfully.');

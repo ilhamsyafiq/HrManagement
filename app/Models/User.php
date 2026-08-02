@@ -38,9 +38,18 @@ class User extends Authenticatable implements FilamentUser
         'department_id',
         'supervisor_id',
         'shift_id',
+        'employment_type',
         'is_intern',
         'internship_start_date',
         'internship_end_date',
+        'university',
+        'academic_supervisor_name',
+        'academic_supervisor_contact',
+        'course',
+        'internship_weeks',
+        'al_entitlement',
+        'mc_entitlement',
+        'emergency_entitlement',
     ];
 
     /**
@@ -91,6 +100,26 @@ class User extends Authenticatable implements FilamentUser
     public function shiftAssignments()
     {
         return $this->hasMany(ShiftAssignment::class);
+    }
+
+    /**
+     * The shift this user works on the weekday of the given date, or null if
+     * that weekday is a rest/off day (or they have no weekly roster at all).
+     */
+    public function shiftForDate(\Carbon\Carbon $date): ?Shift
+    {
+        return $this->shiftAssignments()
+            ->where('day_of_week', $date->dayOfWeek)
+            ->with('shift')
+            ->first()?->shift;
+    }
+
+    /**
+     * True when this user is scheduled via the weekly shift roster.
+     */
+    public function hasWeeklyRoster(): bool
+    {
+        return $this->shiftAssignments()->exists();
     }
 
     public function subordinates()
@@ -181,5 +210,14 @@ class User extends Authenticatable implements FilamentUser
     public function isIntern()
     {
         return $this->role->name === 'Intern';
+    }
+
+    /**
+     * Part-timers work task-based / flexible hours: no late or early-leave
+     * tracking, paid by actual hours worked, and no AL/MC/Emergency leave.
+     */
+    public function isPartTime(): bool
+    {
+        return $this->employment_type === 'part_time';
     }
 }

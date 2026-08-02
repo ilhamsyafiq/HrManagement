@@ -10,6 +10,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class AnnouncementResource extends Resource
 {
@@ -31,6 +33,25 @@ class AnnouncementResource extends Resource
                     ->columnSpanFull(),
                 Forms\Components\RichEditor::make('content')
                     ->required()
+                    ->fileAttachmentsDisk('public')
+                    ->fileAttachmentsDirectory('announcements')
+                    ->fileAttachmentsVisibility('public')
+                    // Restrict RichEditor image attachments to raster images only.
+                    // This Filament version's RichEditor has no
+                    // fileAttachmentsAcceptedFileTypes(), so we validate the
+                    // uploaded MIME type here and reject SVG/HTML (stored XSS)
+                    // before persisting, then store via the default flow.
+                    ->saveUploadedFileAttachmentsUsing(function (TemporaryUploadedFile $file): ?string {
+                        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+                        if (! in_array($file->getMimeType(), $allowed, true)) {
+                            throw ValidationException::withMessages([
+                                'attachment' => 'Only JPEG, PNG, GIF or WEBP images are allowed as attachments.',
+                            ]);
+                        }
+
+                        return $file->storePublicly('announcements', 'public');
+                    })
                     ->columnSpanFull(),
                 Forms\Components\Select::make('priority')
                     ->options([

@@ -64,6 +64,17 @@ class RoleResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('name')
+            ->filters([
+                Tables\Filters\SelectFilter::make('name')
+                    ->label('Role')
+                    ->options([
+                        'Super Admin' => 'Super Admin',
+                        'Admin' => 'Admin',
+                        'Supervisor' => 'Supervisor',
+                        'Employee' => 'Employee',
+                        'Intern' => 'Intern',
+                    ]),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()

@@ -7,9 +7,11 @@ use Filament\Widgets\ChartWidget;
 
 class AttendanceTrendChart extends ChartWidget
 {
-    protected static ?string $heading = 'Attendance Trend (Last 6 Months)';
+    protected static ?string $heading = 'Attendance & Late Arrivals (Last 6 Months)';
 
-    protected static ?int $sort = 2;
+    protected static ?string $description = 'Monthly clock-in volume with late arrivals overlaid.';
+
+    protected static ?int $sort = 4;
 
     protected int|string|array $columnSpan = 'full';
 
@@ -19,11 +21,20 @@ class AttendanceTrendChart extends ChartWidget
     {
         $months = [];
         $counts = [];
+        $late = [];
+
         for ($i = 5; $i >= 0; $i--) {
             $date = now('Asia/Kuala_Lumpur')->subMonths($i);
             $months[] = $date->format('M Y');
+
             $counts[] = Attendance::whereYear('date', $date->year)
                 ->whereMonth('date', $date->month)
+                ->whereNotNull('clock_in')
+                ->count();
+
+            $late[] = Attendance::whereYear('date', $date->year)
+                ->whereMonth('date', $date->month)
+                ->where('is_late', true)
                 ->count();
         }
 
@@ -32,13 +43,45 @@ class AttendanceTrendChart extends ChartWidget
                 [
                     'label' => 'Attendances',
                     'data' => $counts,
-                    'borderColor' => '#3b82f6',
-                    'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
+                    'borderColor' => '#2563eb',
+                    'backgroundColor' => 'rgba(37, 99, 235, 0.12)',
                     'fill' => true,
-                    'tension' => 0.3,
+                    'tension' => 0.35,
+                    'pointBackgroundColor' => '#2563eb',
+                    'pointRadius' => 3,
+                    'borderWidth' => 2,
+                ],
+                [
+                    'label' => 'Late Arrivals',
+                    'data' => $late,
+                    'borderColor' => '#f59e0b',
+                    'backgroundColor' => 'rgba(245, 158, 11, 0.12)',
+                    'fill' => true,
+                    'tension' => 0.35,
+                    'pointBackgroundColor' => '#f59e0b',
+                    'pointRadius' => 3,
+                    'borderWidth' => 2,
                 ],
             ],
             'labels' => $months,
+        ];
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => [
+                    'display' => true,
+                    'position' => 'bottom',
+                ],
+            ],
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'ticks' => ['precision' => 0],
+                ],
+            ],
         ];
     }
 

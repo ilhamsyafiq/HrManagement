@@ -23,9 +23,13 @@
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
+        @php($canEditEmail = $user->isAdmin() || $user->isSuperAdmin())
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
+            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full @unless($canEditEmail) bg-gray-100 dark:bg-gray-800 cursor-not-allowed text-gray-500 @endunless" :value="old('email', $user->email)" required autocomplete="username" :readonly="! $canEditEmail" />
+            @unless ($canEditEmail)
+                <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">{{ __('Your email is managed by HR. Contact an administrator to change it.') }}</p>
+            @endunless
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())

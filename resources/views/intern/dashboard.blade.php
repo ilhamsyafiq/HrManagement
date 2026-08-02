@@ -5,11 +5,47 @@
         </h2>
     </x-slot>
 
+    @php
+        /**
+         * Minimal server-side HTML sanitizer for RichEditor announcement content.
+         * No sanitizer package (mews/purifier) is installed, so we apply a safe
+         * allowlist and strip script/style/iframe/svg, on* handlers and
+         * javascript:/vbscript: URIs to prevent stored XSS.
+         */
+        if (! function_exists('hr_clean_announcement')) {
+            function hr_clean_announcement($html) {
+                $html = (string) $html;
+                $html = preg_replace('#<(script|style|iframe|svg|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html);
+                $html = preg_replace('#<(script|style|iframe|svg|object|embed|form)\b[^>]*/?>#is', '', $html);
+                $allowed = '<p><br><b><strong><i><em><u><ul><ol><li><a><img>'
+                    . '<h1><h2><h3><h4><h5><h6><blockquote><span><div><pre><code><hr>';
+                $html = strip_tags($html, $allowed);
+                $html = preg_replace('#\son[a-z]+\s*=\s*"[^"]*"#i', '', $html);
+                $html = preg_replace("#\son[a-z]+\s*=\s*'[^']*'#i", '', $html);
+                $html = preg_replace('#\son[a-z]+\s*=\s*[^\s>]+#i', '', $html);
+                $html = preg_replace('#(href|src)\s*=\s*(["\'])\s*(?:javascript|vbscript)\s*:[^"\']*\2#i', '$1="#"', $html);
+                return $html;
+            }
+        }
+    @endphp
+
     {{-- Announcement Popup Modal --}}
     @if(isset($popupAnnouncements) && $popupAnnouncements->count() > 0)
-    <div id="announcementPopup" class="fixed inset-0 z-50 overflow-y-auto" x-data="{ show: true }" x-show="show" x-transition>
+    <div id="announcementPopup" class="fixed inset-0 z-50 overflow-y-auto" x-data="{
+        show: false,
+        init() {
+            const today = new Date().toISOString().slice(0, 10);
+            const dismissed = localStorage.getItem('announcement_dismissed_date');
+            this.show = (dismissed !== today);
+        },
+        dismiss() {
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem('announcement_dismissed_date', today);
+            this.show = false;
+        }
+    }" x-show="show" x-transition>
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="show = false; document.getElementById('announcementPopup').remove()"></div>
+            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="dismiss()"></div>
             <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full overflow-hidden z-10">
                 <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-indigo-600 to-purple-600">
                     <div class="flex items-center justify-between">
@@ -17,7 +53,7 @@
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                             <h3 class="text-lg font-semibold text-white">Important Announcements</h3>
                         </div>
-                        <button @click="show = false; document.getElementById('announcementPopup').remove()" class="text-white/70 hover:text-white transition">
+                        <button @click="dismiss()" class="text-white/70 hover:text-white transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
@@ -33,7 +69,7 @@
                                 ">{{ $ann->priority }}</span>
                                 <div class="flex-1">
                                     <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $ann->title }}</h4>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">{!! nl2br(e(Str::limit($ann->content, 200))) !!}</p>
+                                    <div class="prose prose-sm dark:prose-invert max-w-none text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">{!! hr_clean_announcement($ann->content) !!}</div>
                                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">{{ \Carbon\Carbon::parse($ann->publish_date)->diffForHumans() }}</p>
                                 </div>
                             </div>
@@ -42,7 +78,7 @@
                 </div>
                 <div class="px-6 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex justify-between items-center">
                     <a href="{{ route('announcements.index') }}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition">View All Announcements</a>
-                    <button @click="show = false; document.getElementById('announcementPopup').remove()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Dismiss</button>
+                    <button @click="dismiss()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Dismiss</button>
                 </div>
             </div>
         </div>
@@ -59,6 +95,48 @@
                     <div id="live-clock" class="text-5xl font-mono font-bold text-white mb-2"></div>
                     <p class="text-indigo-200 text-sm">{{ now('Asia/Kuala_Lumpur')->format('l, F j, Y') }}</p>
                     <p class="text-indigo-300/70 text-xs mt-1">Malaysia Time (MYT)</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Quick Actions</h3>
+                </div>
+                <div class="p-6">
+                    <!-- WFH Toggle -->
+                    <div class="mb-5 flex items-center gap-3" id="wfh-toggle-container">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="wfh-checkbox" class="sr-only peer" onchange="toggleWfh()">
+                            <div class="relative w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span class="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">Working From Home (WFH)</span>
+                        </label>
+                        <span id="wfh-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 hidden">WFH Mode</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button id="clock-in-btn" class="group flex flex-col items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-emerald-700 dark:text-emerald-400 disabled:text-gray-400 dark:disabled:text-gray-500 font-semibold py-5 px-4 rounded-xl transition duration-200" onclick="clockIn()">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+                            <span class="text-sm">Clock In</span>
+                        </button>
+                        <button id="clock-out-btn" class="group flex flex-col items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 hover:border-red-400 dark:hover:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-red-700 dark:text-red-400 disabled:text-gray-400 dark:disabled:text-gray-500 font-semibold py-5 px-4 rounded-xl transition duration-200" onclick="clockOut()">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/></svg>
+                            <span class="text-sm">Clock Out</span>
+                        </button>
+                        <button id="break-in-btn" class="group flex flex-col items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-amber-700 dark:text-amber-400 disabled:text-gray-400 dark:disabled:text-gray-500 font-semibold py-5 px-4 rounded-xl transition duration-200" onclick="breakIn()">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5"/></svg>
+                            <span class="text-sm">Start Break</span>
+                        </button>
+                        <button id="break-out-btn" class="group flex flex-col items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-orange-700 dark:text-orange-400 disabled:text-gray-400 dark:disabled:text-gray-500 font-semibold py-5 px-4 rounded-xl transition duration-200" onclick="breakOut()">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg>
+                            <span class="text-sm">End Break</span>
+                        </button>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+                        <span><strong>Status:</strong> <span id="action-status">Loading...</span></span>
+                    </div>
                 </div>
             </div>
 
@@ -360,48 +438,6 @@
                             <p class="text-gray-400 dark:text-gray-500 text-sm">No attendance record for today.</p>
                         </div>
                     @endif
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
-                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Quick Actions</h3>
-                </div>
-                <div class="p-6">
-                    <!-- WFH Toggle -->
-                    <div class="mb-5 flex items-center gap-3" id="wfh-toggle-container">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" id="wfh-checkbox" class="sr-only peer" onchange="toggleWfh()">
-                            <div class="relative w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                            <span class="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">Working From Home (WFH)</span>
-                        </label>
-                        <span id="wfh-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20 hidden">WFH Mode</span>
-                    </div>
-
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button id="clock-in-btn" class="group flex flex-col items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-emerald-700 dark:text-emerald-400 disabled:text-gray-400 dark:disabled:text-gray-500 font-semibold py-5 px-4 rounded-xl transition duration-200" onclick="clockIn()">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
-                            <span class="text-sm">Clock In</span>
-                        </button>
-                        <button id="clock-out-btn" class="group flex flex-col items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-800 hover:border-red-400 dark:hover:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-red-700 dark:text-red-400 disabled:text-gray-400 dark:disabled:text-gray-500 font-semibold py-5 px-4 rounded-xl transition duration-200" onclick="clockOut()">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/></svg>
-                            <span class="text-sm">Clock Out</span>
-                        </button>
-                        <button id="break-in-btn" class="group flex flex-col items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-amber-700 dark:text-amber-400 disabled:text-gray-400 dark:disabled:text-gray-500 font-semibold py-5 px-4 rounded-xl transition duration-200" onclick="breakIn()">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5"/></svg>
-                            <span class="text-sm">Start Break</span>
-                        </button>
-                        <button id="break-out-btn" class="group flex flex-col items-center justify-center gap-2 bg-white dark:bg-gray-800 border-2 border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed text-orange-700 dark:text-orange-400 disabled:text-gray-400 dark:disabled:text-gray-500 font-semibold py-5 px-4 rounded-xl transition duration-200" onclick="breakOut()">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/></svg>
-                            <span class="text-sm">End Break</span>
-                        </button>
-                    </div>
-                    <div class="mt-4 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
-                        <span><strong>Status:</strong> <span id="action-status">Loading...</span></span>
-                    </div>
                 </div>
             </div>
 

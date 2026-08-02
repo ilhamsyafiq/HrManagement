@@ -111,6 +111,16 @@ class AttendanceController extends Controller
         ]);
 
         $attendance = Attendance::findOrFail($id);
+
+        // Only the record's owner, the owner's supervisor, or an admin may edit.
+        $user = Auth::user();
+        $isAdmin = $user->isAdmin() || $user->isSuperAdmin();
+        $isOwner = $attendance->user_id === $user->id;
+        $isOwnersSupervisor = $attendance->user && $attendance->user->supervisor_id === $user->id;
+        if (!$isAdmin && !$isOwner && !$isOwnersSupervisor) {
+            abort(403);
+        }
+
         $data = [];
 
         if ($request->clock_in) {

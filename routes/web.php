@@ -30,6 +30,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::post('/reports/{document}/submit', [\App\Http\Controllers\ReportController::class, 'submit'])->name('reports.submit');
         Route::get('/reports/{document}/sign-form', [\App\Http\Controllers\ReportController::class, 'showSignForm'])->name('reports.sign.form');
         Route::post('/reports/{document}/sign', [\App\Http\Controllers\ReportController::class, 'sign'])->name('reports.sign');
+        // One-click sign: stamp the supervisor's stored signature onto the PDF.
+        Route::post('/reports/{document}/quick-sign', [\App\Http\Controllers\ReportController::class, 'quickSign'])->name('reports.quicksign');
         Route::resource('reports', \App\Http\Controllers\ReportController::class)->parameters(['reports' => 'document']);
 
         // Clock routes
@@ -46,14 +48,34 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     });
 
+    // Report PDF preview (inline) - OUTSIDE redirect.admin so Admin/Super Admin can
+    // load the PDF into a Filament modal too. Authorization (owner / owner's
+    // supervisor / admin) is enforced inside the controller methods.
+    Route::get('/reports/{document}/pdf', [\App\Http\Controllers\ReportController::class, 'viewPdf'])->name('reports.pdf');
+    Route::get('/reports/{document}/pdf-signed', [\App\Http\Controllers\ReportController::class, 'viewPdfSigned'])->name('reports.pdf.signed');
+
+    // Admin statistics PDFs (Attendance/Leave/Employee/Department/Monthly/Audit)
+    // streamed inline for the Filament Reports page preview modal (?download=1 = attachment).
+    Route::get('/admin-reports/pdf/{type}', [\App\Http\Controllers\AdminReportPdfController::class, 'show'])->name('admin.reports.pdf');
+
+    // Impersonation (Super Admin only; guarded in the controller).
+    Route::get('/impersonate/{user}', [\App\Http\Controllers\ImpersonationController::class, 'start'])->name('impersonate.start');
+    Route::get('/impersonate-stop', [\App\Http\Controllers\ImpersonationController::class, 'stop'])->name('impersonate.stop');
+
     // Leave routes - accessible by all authenticated users (moved outside redirect.admin)
+    Route::get('/leave/{leave}/document', [\App\Http\Controllers\LeaveController::class, 'downloadDocument'])->name('leave.document');
     Route::resource('leave', \App\Http\Controllers\LeaveController::class);
+
+    // Bug report / feedback (temporary tool) - any authenticated user submits; Super Admin views via Filament.
+    Route::get('/feedback', [\App\Http\Controllers\FeedbackController::class, 'create'])->name('feedback.create');
+    Route::post('/feedback', [\App\Http\Controllers\FeedbackController::class, 'store'])->name('feedback.store');
 
     // Claims - accessible by all authenticated users
     Route::get('/claims', [ClaimController::class, 'index'])->name('claims.index');
     Route::get('/claims/create', [ClaimController::class, 'create'])->name('claims.create');
     Route::post('/claims', [ClaimController::class, 'store'])->name('claims.store');
     Route::get('/claims/{claim}', [ClaimController::class, 'show'])->name('claims.show');
+    Route::get('/claims/item/{item}/receipt', [ClaimController::class, 'downloadReceipt'])->name('claims.receipt');
     Route::patch('/claims/{claim}/submit', [ClaimController::class, 'submit'])->name('claims.submit');
     Route::post('/claims/{claim}/item', [ClaimController::class, 'addItem'])->name('claims.item.add');
     Route::delete('/claims/item/{item}', [ClaimController::class, 'removeItem'])->name('claims.item.remove');
@@ -65,6 +87,8 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/create', [MessageController::class, 'create'])->name('messages.create');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+    // Bulk / grouped send (supervisor → all subordinates / interns / employees).
+    Route::post('/messages/bulk', [MessageController::class, 'bulkStore'])->name('messages.bulk');
     Route::get('/messages/{message}', [MessageController::class, 'show'])->name('messages.show');
     Route::post('/messages/{message}/reply', [MessageController::class, 'reply'])->name('messages.reply');
 
@@ -103,18 +127,21 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Profile routes - accessible by all authenticated users
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Payroll routes - accessible by all authenticated users
-    Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
-    Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
-    Route::get('/payroll/{payroll}/payslip', [PayrollController::class, 'payslip'])->name('payroll.payslip');
-    Route::get('/payroll/{payroll}/payslip/pdf', [PayrollController::class, 'downloadPayslip'])->name('payroll.payslip.pdf');
-    Route::post('/payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
-    Route::post('/payroll/{payroll}/item', [PayrollController::class, 'addItem'])->name('payroll.item.add');
-    Route::delete('/payroll/item/{item}', [PayrollController::class, 'removeItem'])->name('payroll.item.remove');
-    Route::patch('/payroll/{payroll}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
-    Route::patch('/payroll/{payroll}/mark-paid', [PayrollController::class, 'markPaid'])->name('payroll.mark-paid');
+    // Payroll routes - gated behind config('hr.payroll_enabled'). The module is
+    // hidden while the statutory calculation is under review with finance & HR;
+    // flip HR_PAYROLL_ENABLED=true (then `php artisan optimize:clear`) to restore.
+    if (config('hr.payroll_enabled')) {
+        Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
+        Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
+        Route::get('/payroll/{payroll}/payslip', [PayrollController::class, 'payslip'])->name('payroll.payslip');
+        Route::get('/payroll/{payroll}/payslip/pdf', [PayrollController::class, 'downloadPayslip'])->name('payroll.payslip.pdf');
+        Route::post('/payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
+        Route::post('/payroll/{payroll}/item', [PayrollController::class, 'addItem'])->name('payroll.item.add');
+        Route::delete('/payroll/item/{item}', [PayrollController::class, 'removeItem'])->name('payroll.item.remove');
+        Route::patch('/payroll/{payroll}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
+        Route::patch('/payroll/{payroll}/mark-paid', [PayrollController::class, 'markPaid'])->name('payroll.mark-paid');
+    }
 
     // Leave approval routes - accessible by supervisors and admins
     Route::middleware(['check.supervisor.admin'])->group(function () {

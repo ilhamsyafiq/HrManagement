@@ -69,6 +69,13 @@ class DepartmentResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('name')
+            ->filters([
+                Tables\Filters\SelectFilter::make('hod_id')
+                    ->label('Head of Dept')
+                    ->relationship('hod', 'name')
+                    ->searchable()
+                    ->preload(),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])

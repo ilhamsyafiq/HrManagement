@@ -5,6 +5,30 @@
         </h2>
     </x-slot>
 
+    @php
+        /**
+         * Minimal server-side HTML sanitizer for RichEditor announcement content.
+         * No sanitizer package (mews/purifier) is installed, so we apply a safe
+         * allowlist and strip script/style/iframe/svg, on* handlers and
+         * javascript:/vbscript: URIs to prevent stored XSS.
+         */
+        if (! function_exists('hr_clean_announcement')) {
+            function hr_clean_announcement($html) {
+                $html = (string) $html;
+                $html = preg_replace('#<(script|style|iframe|svg|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html);
+                $html = preg_replace('#<(script|style|iframe|svg|object|embed|form)\b[^>]*/?>#is', '', $html);
+                $allowed = '<p><br><b><strong><i><em><u><ul><ol><li><a><img>'
+                    . '<h1><h2><h3><h4><h5><h6><blockquote><span><div><pre><code><hr>';
+                $html = strip_tags($html, $allowed);
+                $html = preg_replace('#\son[a-z]+\s*=\s*"[^"]*"#i', '', $html);
+                $html = preg_replace("#\son[a-z]+\s*=\s*'[^']*'#i", '', $html);
+                $html = preg_replace('#\son[a-z]+\s*=\s*[^\s>]+#i', '', $html);
+                $html = preg_replace('#(href|src)\s*=\s*(["\'])\s*(?:javascript|vbscript)\s*:[^"\']*\2#i', '$1="#"', $html);
+                return $html;
+            }
+        }
+    @endphp
+
     {{-- Announcement Popup Modal --}}
     @if(isset($popupAnnouncements) && $popupAnnouncements->count() > 0)
     <div id="announcementPopup" class="fixed inset-0 z-50 overflow-y-auto" x-data="{
@@ -45,7 +69,7 @@
                                 ">{{ $ann->priority }}</span>
                                 <div class="flex-1">
                                     <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $ann->title }}</h4>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">{!! nl2br(e(Str::limit($ann->content, 200))) !!}</p>
+                                    <div class="prose prose-sm dark:prose-invert max-w-none text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">{!! hr_clean_announcement($ann->content) !!}</div>
                                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">{{ \Carbon\Carbon::parse($ann->publish_date)->diffForHumans() }}</p>
                                 </div>
                             </div>
@@ -96,6 +120,65 @@
                             Not Clocked In
                         </div>
                     @endif
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
+                    <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Quick Actions</h3>
+                </div>
+                <div class="p-6">
+                    <!-- WFH Toggle -->
+                    <div class="mb-5 flex items-center" id="wfh-toggle-container">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="wfh-checkbox" class="sr-only peer" onchange="toggleWfh()">
+                            <div class="relative w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span class="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">Working From Home (WFH)</span>
+                        </label>
+                        <span id="wfh-badge" class="ml-3 inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 hidden">WFH Mode</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <button id="clock-in-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="clockIn()">
+                            <div class="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
+                                <svg class="w-5 h-5 text-green-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Clock In</span>
+                        </button>
+                        <button id="clock-out-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="clockOut()">
+                            <div class="w-10 h-10 rounded-full bg-red-100 group-hover:bg-red-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
+                                <svg class="w-5 h-5 text-red-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Clock Out</span>
+                        </button>
+                        <button id="break-in-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="breakIn()">
+                            <div class="w-10 h-10 rounded-full bg-amber-100 group-hover:bg-amber-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
+                                <svg class="w-5 h-5 text-amber-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Start Break</span>
+                        </button>
+                        <button id="break-out-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="breakOut()">
+                            <div class="w-10 h-10 rounded-full bg-orange-100 group-hover:bg-orange-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
+                                <svg class="w-5 h-5 text-orange-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">End Break</span>
+                        </button>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2.5">
+                        <span class="font-medium text-gray-500 dark:text-gray-400">Status:</span> <span id="action-status">Loading...</span>
+                    </div>
                 </div>
             </div>
 
@@ -195,65 +278,6 @@
                             <p class="text-sm">No attendance record for today.</p>
                         </div>
                     @endif
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700 flex items-center">
-                    <svg class="w-5 h-5 text-indigo-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Quick Actions</h3>
-                </div>
-                <div class="p-6">
-                    <!-- WFH Toggle -->
-                    <div class="mb-5 flex items-center" id="wfh-toggle-container">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" id="wfh-checkbox" class="sr-only peer" onchange="toggleWfh()">
-                            <div class="relative w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                            <span class="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">Working From Home (WFH)</span>
-                        </label>
-                        <span id="wfh-badge" class="ml-3 inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 hidden">WFH Mode</span>
-                    </div>
-
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button id="clock-in-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="clockIn()">
-                            <div class="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
-                                <svg class="w-5 h-5 text-green-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-                                </svg>
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Clock In</span>
-                        </button>
-                        <button id="clock-out-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="clockOut()">
-                            <div class="w-10 h-10 rounded-full bg-red-100 group-hover:bg-red-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
-                                <svg class="w-5 h-5 text-red-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                                </svg>
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Clock Out</span>
-                        </button>
-                        <button id="break-in-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="breakIn()">
-                            <div class="w-10 h-10 rounded-full bg-amber-100 group-hover:bg-amber-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
-                                <svg class="w-5 h-5 text-amber-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">Start Break</span>
-                        </button>
-                        <button id="break-out-btn" class="group flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/30 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:border-gray-100 dark:disabled:border-gray-700 disabled:cursor-not-allowed rounded-xl py-4 px-4 transition duration-200 shadow-sm" onclick="breakOut()">
-                            <div class="w-10 h-10 rounded-full bg-orange-100 group-hover:bg-orange-200 group-disabled:bg-gray-100 flex items-center justify-center mb-2 transition-colors">
-                                <svg class="w-5 h-5 text-orange-600 group-disabled:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 group-disabled:text-gray-400 dark:group-disabled:text-gray-500">End Break</span>
-                        </button>
-                    </div>
-                    <div class="mt-4 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-2.5">
-                        <span class="font-medium text-gray-500 dark:text-gray-400">Status:</span> <span id="action-status">Loading...</span>
-                    </div>
                 </div>
             </div>
 

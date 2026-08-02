@@ -38,6 +38,15 @@
                 </header>
             @endisset
 
+            @if (session()->has('impersonator_id'))
+                <div class="bg-amber-500 text-white text-sm">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-3">
+                        <span>You are impersonating <strong>{{ auth()->user()->name }}</strong>.</span>
+                        <a href="{{ route('impersonate.stop') }}" class="underline font-semibold hover:text-amber-100 whitespace-nowrap">Return to your account</a>
+                    </div>
+                </div>
+            @endif
+
             <!-- Page Content -->
             <main>
                 {{ $slot }}

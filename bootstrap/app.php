@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Behind Railway's load balancer: trust forwarded headers so HTTPS is
+        // detected correctly (secure cookies, correct URL scheme, real client IP).
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'redirect.admin' => \App\Http\Middleware\RedirectAdminMiddleware::class,
             'supervisor.admin' => \App\Http\Middleware\SupervisorAdminMiddleware::class,

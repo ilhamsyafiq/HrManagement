@@ -66,7 +66,8 @@ class ClaimController extends Controller
             $receiptPath = null;
 
             if ($request->hasFile("items.{$index}.receipt")) {
-                $receiptPath = $request->file("items.{$index}.receipt")->store('claims', 'public');
+                // Private (local) disk: financial receipts must not be public.
+                $receiptPath = $request->file("items.{$index}.receipt")->store('claims');
             }
 
             ClaimItem::create([
@@ -143,7 +144,8 @@ class ClaimController extends Controller
         $receiptPath = null;
 
         if ($request->hasFile('receipt')) {
-            $receiptPath = $request->file('receipt')->store('claims', 'public');
+            // Private (local) disk: financial receipts must not be public.
+            $receiptPath = $request->file('receipt')->store('claims');
         }
 
         ClaimItem::create([
@@ -175,13 +177,34 @@ class ClaimController extends Controller
         }
 
         if ($item->receipt_path) {
-            Storage::disk('public')->delete($item->receipt_path);
+            Storage::delete($item->receipt_path);
         }
 
         $item->delete();
         $claim->recalculateTotal();
 
         return redirect()->back()->with('success', 'Item removed successfully.');
+    }
+
+    /**
+     * Stream a claim item's receipt from the PRIVATE disk.
+     *
+     * Authorization mirrors show(): the owning claim's user, or an
+     * Admin / Super Admin, may download it.
+     */
+    public function downloadReceipt(ClaimItem $item)
+    {
+        $user = Auth::user();
+        $claim = $item->claim;
+
+        if ($claim->user_id !== $user->id && !$user->isSuperAdmin() && !$user->isAdmin()) {
+            abort(403);
+        }
+
+        abort_if(! $item->receipt_path, 404);
+        abort_unless(Storage::exists($item->receipt_path), 404);
+
+        return Storage::download($item->receipt_path);
     }
 
     public function approve(Claim $claim)

@@ -36,8 +36,17 @@ class EmployeeDocumentsRelationManager extends RelationManager
                     ->required(),
                 Forms\Components\FileUpload::make('file_path')
                     ->label('File')
-                    ->disk('public')
+                    ->disk('local')
+                    ->visibility('private')
                     ->directory('employee-documents')
+                    ->acceptedFileTypes([
+                        'application/pdf',
+                        'image/jpeg',
+                        'image/png',
+                        'application/msword',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    ])
+                    ->maxSize(10240)
                     ->storeFileNamesIn('file_name')
                     ->required()
                     ->columnSpanFull(),
@@ -89,7 +98,7 @@ class EmployeeDocumentsRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\Action::make('download')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn ($record) => $record->file_path ? \Storage::disk('public')->url($record->file_path) : null, shouldOpenInNewTab: true)
+                    ->url(fn ($record) => route('employee-profile.document.download', $record->id), shouldOpenInNewTab: true)
                     ->visible(fn ($record) => filled($record->file_path)),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

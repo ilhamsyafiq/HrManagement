@@ -13,7 +13,8 @@ class Attendance extends Model
         'clock_out_accuracy', 'clock_out_distance', 'clock_out_is_mock',
         'is_wfh', 'location_flagged', 'location_flag_reason',
         'total_work_hours', 'is_manually_edited', 'edited_by', 'edit_reason', 'edited_at',
-        'is_late', 'is_early_leave', 'late_minutes', 'early_leave_minutes'
+        'is_late', 'is_early_leave', 'late_minutes', 'early_leave_minutes',
+        'is_auto_clocked_out', 'auto_clock_out_note',
     ];
 
     protected function casts(): array
@@ -23,6 +24,7 @@ class Attendance extends Model
             'clock_in' => 'datetime',
             'clock_out' => 'datetime',
             'edited_at' => 'datetime',
+            'is_auto_clocked_out' => 'boolean',
         ];
     }
 
@@ -103,26 +105,20 @@ class Attendance extends Model
      */
     protected function standardDailyHours(): float
     {
-        $wh = WorkingHour::getForUser($this->user_id);
+        try {
+            $user = $this->user ?? \App\Models\User::find($this->user_id);
+            $date = $this->date ? \Carbon\Carbon::parse($this->date) : \Carbon\Carbon::now();
 
-        if ($wh && $wh->work_start && $wh->work_end) {
-            try {
-                $start = \Carbon\Carbon::parse($wh->work_start);
-                $end = \Carbon\Carbon::parse($wh->work_end);
-                $workMinutes = $end->diffInMinutes($start);
+            if ($user) {
+                $schedule = \App\Services\ScheduleResolver::forUser($user, $date);
+                $paidHours = \App\Services\ScheduleResolver::paidHours($schedule);
 
-                if ($wh->break_start && $wh->break_end) {
-                    $breakStart = \Carbon\Carbon::parse($wh->break_start);
-                    $breakEnd = \Carbon\Carbon::parse($wh->break_end);
-                    $workMinutes -= $breakEnd->diffInMinutes($breakStart);
+                if ($paidHours !== null) {
+                    return $paidHours;
                 }
-
-                if ($workMinutes > 0) {
-                    return $workMinutes / 60;
-                }
-            } catch (\Exception $e) {
-                // Fall through to default below.
             }
+        } catch (\Exception $e) {
+            // Fall through to default below.
         }
 
         return (float) config('hr.standard_daily_hours', 8);

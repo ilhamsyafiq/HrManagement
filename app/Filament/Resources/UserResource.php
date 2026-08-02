@@ -77,6 +77,15 @@ class UserResource extends Resource
                             ->relationship('shift', 'name')
                             ->searchable()
                             ->preload(),
+                        Forms\Components\Select::make('employment_type')
+                            ->label('Employment Type')
+                            ->options([
+                                'full_time' => 'Full Time',
+                                'part_time' => 'Part Time',
+                            ])
+                            ->default('full_time')
+                            ->required()
+                            ->helperText('Part-timers are paid by actual hours worked: no late / early-leave tracking and no AL/MC/Emergency entitlement.'),
                     ]),
                 Forms\Components\Section::make('Internship')
                     ->columns(2)
@@ -90,6 +99,49 @@ class UserResource extends Resource
                         Forms\Components\DatePicker::make('internship_end_date')
                             ->afterOrEqual('internship_start_date')
                             ->visible(fn (Forms\Get $get) => (bool) $get('is_intern')),
+                    ]),
+                Forms\Components\Section::make('Internship Details')
+                    ->description('University and academic supervisor details for interns.')
+                    ->columns(2)
+                    ->visible(fn (Forms\Get $get) => (bool) $get('is_intern'))
+                    ->schema([
+                        Forms\Components\TextInput::make('university')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('course')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('academic_supervisor_name')
+                            ->label('Academic supervisor')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('academic_supervisor_contact')
+                            ->label('Academic supervisor contact')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('internship_weeks')
+                            ->label('Internship duration (weeks)')
+                            ->numeric()
+                            ->minValue(0),
+                    ]),
+                Forms\Components\Section::make('Leave Entitlements (override)')
+                    ->description('Override the company default annual entitlement for this employee. Leave blank to use the company default.')
+                    ->columns(3)
+                    ->schema([
+                        Forms\Components\TextInput::make('al_entitlement')
+                            ->label('Annual Leave (AL)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->nullable()
+                            ->helperText('Leave blank to use company default (' . (int) config('hr.leave_entitlements.AL', 0) . ').'),
+                        Forms\Components\TextInput::make('mc_entitlement')
+                            ->label('Medical Leave (MC)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->nullable()
+                            ->helperText('Leave blank to use company default (' . (int) config('hr.leave_entitlements.MC', 0) . ').'),
+                        Forms\Components\TextInput::make('emergency_entitlement')
+                            ->label('Emergency Leave')
+                            ->numeric()
+                            ->minValue(0)
+                            ->nullable()
+                            ->helperText('Leave blank to use company default (' . (int) config('hr.leave_entitlements.Emergency', 0) . ').'),
                     ]),
                 Forms\Components\Section::make('Leave Balance & Shift')
                     ->description('Read-only summary of the employee\'s current-year leave balance and assigned shift.')
@@ -250,6 +302,15 @@ class UserResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                // Impersonate: Super Admin only. May impersonate anyone except
+                // themselves and other Super Admins (Admins are allowed).
+                Tables\Actions\Action::make('impersonate')
+                    ->label('Impersonate')
+                    ->icon('heroicon-o-user-circle')
+                    ->color('warning')
+                    ->url(fn (\App\Models\User $record) => route('impersonate.start', $record))
+                    ->visible(fn (\App\Models\User $record) => auth()->user()?->isSuperAdmin()
+                        && ! $record->isSuperAdmin() && $record->id !== auth()->id()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

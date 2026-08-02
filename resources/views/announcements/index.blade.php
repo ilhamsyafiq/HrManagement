@@ -5,6 +5,35 @@
         </h2>
     </x-slot>
 
+    @php
+        /**
+         * Minimal server-side HTML sanitizer for RichEditor content.
+         * No sanitizer package (mews/purifier) is installed, so we apply a
+         * safe allowlist: keep common formatting/media tags, strip everything
+         * else, and remove script/style blocks, on* event handlers, and
+         * javascript:/data-html URIs to prevent stored XSS.
+         */
+        if (! function_exists('hr_clean_announcement')) {
+            function hr_clean_announcement($html) {
+                $html = (string) $html;
+                // Drop <script>, <style>, <iframe>, <svg> element bodies entirely.
+                $html = preg_replace('#<(script|style|iframe|svg|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html);
+                $html = preg_replace('#<(script|style|iframe|svg|object|embed|form)\b[^>]*/?>#is', '', $html);
+                // Allowlist of safe tags.
+                $allowed = '<p><br><b><strong><i><em><u><ul><ol><li><a><img>'
+                    . '<h1><h2><h3><h4><h5><h6><blockquote><span><div><pre><code><hr>';
+                $html = strip_tags($html, $allowed);
+                // Remove inline event handlers: on...="..." / on...='...' / on...=value
+                $html = preg_replace('#\son[a-z]+\s*=\s*"[^"]*"#i', '', $html);
+                $html = preg_replace("#\son[a-z]+\s*=\s*'[^']*'#i", '', $html);
+                $html = preg_replace('#\son[a-z]+\s*=\s*[^\s>]+#i', '', $html);
+                // Neutralize javascript: and vbscript: URIs in href/src.
+                $html = preg_replace('#(href|src)\s*=\s*(["\'])\s*(?:javascript|vbscript)\s*:[^"\']*\2#i', '$1="#"', $html);
+                return $html;
+            }
+        }
+    @endphp
+
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
@@ -47,7 +76,7 @@
                         </div>
 
                         <div class="prose prose-sm max-w-none text-gray-700 mb-4">
-                            {!! nl2br(e($announcement->content)) !!}
+                            {!! hr_clean_announcement($announcement->content) !!}
                         </div>
 
                         <div class="flex items-center gap-4 text-xs text-gray-500">

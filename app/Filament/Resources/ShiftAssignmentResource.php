@@ -19,6 +19,17 @@ class ShiftAssignmentResource extends Resource
 
     protected static ?string $navigationGroup = 'Settings';
 
+    /**
+     * Hidden from navigation: the "Shift Roster" page is the single roster
+     * view + editor. This resource's create/edit forms are still reachable from
+     * the roster cells and the "New assignment" button, but it no longer appears
+     * as a separate "Shift Assignments" menu item (removed as a duplicate).
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -35,8 +46,34 @@ class ShiftAssignmentResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required(),
-                Forms\Components\DatePicker::make('date')
-                    ->required(),
+                // Create: assign the same shift to several weekdays at once.
+                Forms\Components\CheckboxList::make('days')
+                    ->label('Days of week')
+                    ->options(ShiftAssignment::DAYS)
+                    ->columns(2)
+                    ->required()
+                    ->helperText('Tick every day this shift applies. Days left unticked are treated as rest/off days.')
+                    ->dehydrated(false)
+                    ->visibleOn('create'),
+                // Edit: a single assignment is one weekday.
+                Forms\Components\Select::make('day_of_week')
+                    ->label('Day of week')
+                    ->options(ShiftAssignment::DAYS)
+                    ->required()
+                    ->hiddenOn('create')
+                    ->rule(function (?ShiftAssignment $record, Forms\Get $get) {
+                        return function (string $attribute, $value, \Closure $fail) use ($record, $get) {
+                            $exists = ShiftAssignment::query()
+                                ->where('user_id', $get('user_id'))
+                                ->where('day_of_week', $value)
+                                ->when($record, fn ($q) => $q->whereKeyNot($record->getKey()))
+                                ->exists();
+
+                            if ($exists) {
+                                $fail('This employee already has a shift assigned for that day.');
+                            }
+                        };
+                    }),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
             ]);
@@ -46,17 +83,42 @@ class ShiftAssignmentResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('date')
-                    ->date()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Employee')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('day_of_week')
+                    ->label('Day')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => ShiftAssignment::DAYS[$state] ?? '—')
+                    // Weekend (Sun=0, Sat=6) in amber; weekdays in gray for quick scanning.
+                    ->color(fn ($state) => in_array((int) $state, [0, 6]) ? 'warning' : 'gray')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('shift.name')
                     ->label('Shift')
                     ->badge()
+                    ->color('info')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('hours')
+                    ->label('Hours')
+                    ->badge()
+                    ->color('success')
+                    ->getStateUsing(function (ShiftAssignment $record) {
+                        $shift = $record->shift;
+                        if (! $shift) {
+                            return '—';
+                        }
+                        if ($shift->is_flexible) {
+                            return 'Flexible';
+                        }
+                        $fmt = fn ($t) => ! $t ? '??' : ($t instanceof \DateTimeInterface ? $t->format('H:i') : substr((string) $t, 0, 5));
+                        if ($shift->relationLoaded('segments') && $shift->segments->count()) {
+                            return $shift->segments
+                                ->map(fn ($seg) => $fmt($seg->start_time) . '–' . $fmt($seg->end_time))
+                                ->implode('  +  ');
+                        }
+                        return $fmt($shift->start_time) . '–' . $fmt($shift->end_time);
+                    }),
                 Tables\Columns\TextColumn::make('notes')
                     ->limit(50)
                     ->placeholder('—')
@@ -66,31 +128,25 @@ class ShiftAssignmentResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('date', 'desc')
+            ->defaultSort('day_of_week')
+            ->groups([
+                Tables\Grouping\Group::make('user.name')
+                    ->label('Employee'),
+            ])
             ->filters([
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->label('Employee')
+                    ->relationship('user', 'name')
+                    ->searchable()
+                    ->preload(),
                 Tables\Filters\SelectFilter::make('shift_id')
                     ->label('Shift')
                     ->relationship('shift', 'name')
                     ->searchable()
                     ->preload(),
-                Tables\Filters\Filter::make('date')
-                    ->form([
-                        Forms\Components\DatePicker::make('from')
-                            ->label('From date'),
-                        Forms\Components\DatePicker::make('until')
-                            ->label('Until date'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['from'] ?? null,
-                                fn (Builder $q, $date) => $q->whereDate('date', '>=', $date),
-                            )
-                            ->when(
-                                $data['until'] ?? null,
-                                fn (Builder $q, $date) => $q->whereDate('date', '<=', $date),
-                            );
-                    }),
+                Tables\Filters\SelectFilter::make('day_of_week')
+                    ->label('Day')
+                    ->options(ShiftAssignment::DAYS),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -104,7 +160,7 @@ class ShiftAssignmentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['user', 'shift']);
+        return parent::getEloquentQuery()->with(['user', 'shift.segments']);
     }
 
     public static function getPages(): array

@@ -40,7 +40,9 @@ class LeaveController extends Controller
         $documentPath = null;
 
         if ($request->hasFile('document')) {
-            $documentPath = $request->file('document')->store('leaves', 'public');
+            // Store on the private (local) disk so medical certificates are not
+            // world-readable; served only via downloadDocument() below.
+            $documentPath = $request->file('document')->store('leaves');
         }
 
         $leave = Leave::create([
@@ -61,6 +63,22 @@ class LeaveController extends Controller
         $this->authorize('view', $leave);
 
         return view('leave.show', compact('leave'));
+    }
+
+    /**
+     * Stream a leave's supporting document from the PRIVATE disk.
+     *
+     * Authorization mirrors LeavePolicy@view: the leave owner, an
+     * Admin / Super Admin, or the owner's supervisor may download it.
+     */
+    public function downloadDocument(Leave $leave)
+    {
+        $this->authorize('view', $leave);
+
+        abort_if(! $leave->document_path, 404);
+        abort_unless(Storage::exists($leave->document_path), 404);
+
+        return Storage::download($leave->document_path);
     }
 
     public function approve(Request $request, $id)

@@ -29,8 +29,22 @@ class GeofenceService
             'flag_reason' => null,
         ];
 
-        // If geofence is disabled, always allow
+        // If geofence is disabled via the global config toggle, always allow.
         if (!config('geofence.enabled')) {
+            return $result;
+        }
+
+        // If the admin has disabled geofencing by deactivating every office
+        // location (no active offices in the DB), geofencing is effectively
+        // OFF. Allow the clock action without any location requirement or
+        // distance check. Still record coordinates if the client provided them.
+        if (!$this->geofenceActive()) {
+            $result['allowed'] = true;
+            if ($lat !== null && $lng !== null) {
+                $nearest = $this->findNearestOffice($lat, $lng);
+                $result['distance'] = $nearest['distance'];
+                $result['nearest_office'] = $nearest['office'];
+            }
             return $result;
         }
 
@@ -104,6 +118,41 @@ class GeofenceService
         }
 
         return $result;
+    }
+
+    /**
+     * Determine whether geofencing is effectively active.
+     *
+     * Geofencing is considered ACTIVE (enforced) when:
+     *   - at least one office location is marked active in the database, OR
+     *   - no office locations have been configured in the database at all
+     *     (in which case we fall back to the config-defined default office).
+     *
+     * It is considered DISABLED when office locations exist in the database
+     * but the admin has deactivated all of them (is_active = false). This is
+     * the admin's mechanism for "turning off geo location" from the panel:
+     * deactivating every office must allow clock-in/out without any location
+     * requirement or distance check.
+     */
+    public function geofenceActive(): bool
+    {
+        // Cache active offices for 10 minutes (same key/TTL as findNearestOffice).
+        $activeOffices = Cache::remember('active_office_locations', 600, function () {
+            return OfficeLocation::where('is_active', true)->get();
+        });
+
+        if ($activeOffices->isNotEmpty()) {
+            return true;
+        }
+
+        // No active offices. If there are NO office rows at all, geofencing was
+        // never configured via the DB, so fall back to config enforcement.
+        // If office rows exist but are all inactive, the admin has disabled geo.
+        // Not cached separately: this only runs when there are zero active
+        // offices (the uncommon/disabled path), so the extra count() is cheap
+        // and always reflects the current DB without needing cache invalidation
+        // from the admin controller.
+        return OfficeLocation::count() === 0;
     }
 
     /**

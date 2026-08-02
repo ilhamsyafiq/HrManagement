@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-8">
+    <div class="py-8" x-data="{ open: false, src: '', signMode: false, signAction: '', signManualUrl: '' }" @keydown.escape.window="open = false; signMode = false">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             {{-- Flash Messages --}}
             @if(session('success'))
@@ -190,6 +190,23 @@
 
                 <div class="p-6">
                     <div class="flex flex-wrap gap-3">
+                        {{-- Preview actions (available to all who can view this report) --}}
+                        <button type="button" @click="src='{{ route('reports.pdf', $document->id) }}'; open=true" class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            View / Preview
+                        </button>
+                        @if($document->status == 'signed' && $document->signed_path)
+                            <button type="button" @click="src='{{ route('reports.pdf.signed', $document->id) }}'; open=true" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                View Signed
+                            </button>
+                        @endif
+
                         {{-- Intern actions --}}
                         @if(auth()->user()->isIntern() && $document->user_id == auth()->id())
                             @if(in_array($document->status, ['draft', 'revised', 'rejected']))
@@ -230,12 +247,14 @@
                         {{-- Supervisor actions --}}
                         @if(auth()->user()->isSupervisor())
                             @if($document->status == 'pending')
-                                <a href="{{ route('reports.sign.form', $document->id) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
+                                <button type="button"
+                                    @click="src='{{ route('reports.pdf', $document->id) }}'; signAction='{{ route('reports.quicksign', $document->id) }}'; signManualUrl='{{ route('reports.sign.form', $document->id) }}'; signMode=true; open=true;"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                                     </svg>
                                     Sign Report
-                                </a>
+                                </button>
                             @endif
                             @if($document->status == 'signed' && $document->signed_path)
                                 <a href="{{ route('reports.download-signed', $document->id) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
@@ -247,6 +266,40 @@
                             @endif
                         @endif
                     </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- PDF Preview Modal --}}
+        <div x-show="open" x-cloak
+             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             style="display: none;">
+            {{-- Backdrop --}}
+            <div class="absolute inset-0 bg-black/60" @click="open = false; src = ''"></div>
+
+            {{-- Panel --}}
+            <div class="relative z-10 w-full max-w-5xl bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100" x-text="signMode ? 'Review & Sign Report' : 'Report Preview'"></h3>
+                    <button type="button" @click="open = false; src = ''; signMode = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition duration-150" aria-label="Close">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900">
+                    <iframe :src="src" class="w-full h-[80vh]"></iframe>
+                </div>
+                {{-- Sign actions (only shown when opened via the Sign button) --}}
+                <div x-show="signMode" class="flex flex-wrap items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <a :href="signManualUrl" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
+                        Sign manually
+                    </a>
+                    <form :action="signAction" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                            One-click Sign
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

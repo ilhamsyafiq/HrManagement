@@ -44,8 +44,11 @@ class ItemsRelationManager extends RelationManager
                     ->required(),
                 Forms\Components\FileUpload::make('receipt_path')
                     ->label('Receipt')
-                    ->disk('public')
-                    ->directory('claim-receipts')
+                    ->disk('local')
+                    ->visibility('private')
+                    ->directory('claims')
+                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                    ->maxSize(2048)
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('notes')
                     ->columnSpanFull(),
@@ -87,6 +90,11 @@ class ItemsRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make(),
             ])
             ->actions([
+                Tables\Actions\Action::make('receipt')
+                    ->label('Receipt')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->url(fn ($record) => route('claims.receipt', $record->id), shouldOpenInNewTab: true)
+                    ->visible(fn ($record) => filled($record->receipt_path)),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

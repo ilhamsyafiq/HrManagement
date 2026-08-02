@@ -29,10 +29,41 @@ class ShiftResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TimePicker::make('start_time')
                     ->seconds(false)
-                    ->required(),
+                    ->hidden(fn (\Filament\Forms\Get $get) => (bool) $get('is_flexible'))
+                    ->required(fn (\Filament\Forms\Get $get) => ! $get('is_flexible')),
                 Forms\Components\TimePicker::make('end_time')
                     ->seconds(false)
-                    ->required(),
+                    ->hidden(fn (\Filament\Forms\Get $get) => (bool) $get('is_flexible'))
+                    ->required(fn (\Filament\Forms\Get $get) => ! $get('is_flexible')),
+                Forms\Components\TimePicker::make('break_start')
+                    ->label('Break start')
+                    ->seconds(false)
+                    ->helperText('Optional unpaid break, e.g. Friday prayer 12:30.'),
+                Forms\Components\TimePicker::make('break_end')
+                    ->label('Break end')
+                    ->seconds(false)
+                    ->after('break_start')
+                    ->requiredWith('break_start'),
+                Forms\Components\Toggle::make('is_flexible')
+                    ->label('Flexible hours')
+                    ->helperText('Flexible hours: no late / early-leave tracking; employee only needs to fulfil total hours.')
+                    ->default(false),
+                Forms\Components\Repeater::make('segments')
+                    ->relationship()
+                    ->label('Work Segments (leave empty for a single span using the times above)')
+                    ->schema([
+                        Forms\Components\TimePicker::make('start_time')
+                            ->seconds(false)
+                            ->required(),
+                        Forms\Components\TimePicker::make('end_time')
+                            ->seconds(false)
+                            ->required(),
+                    ])
+                    ->orderColumn('sort_order')
+                    ->columns(2)
+                    ->defaultItems(0)
+                    ->addActionLabel('Add work segment')
+                    ->columnSpanFull(),
                 Forms\Components\Textarea::make('description')
                     ->columnSpanFull(),
                 Forms\Components\Toggle::make('is_active')
@@ -53,6 +84,18 @@ class ShiftResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('end_time')
                     ->time('H:i')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('break')
+                    ->label('Break')
+                    ->state(fn ($record) => $record->break_start && $record->break_end
+                        ? $record->break_start->format('H:i') . '–' . $record->break_end->format('H:i')
+                        : '—'),
+                Tables\Columns\TextColumn::make('paid_hours')
+                    ->label('Paid hrs')
+                    ->state(fn ($record) => number_format($record->paidHours(), 2)),
+                Tables\Columns\IconColumn::make('is_flexible')
+                    ->label('Flexible')
+                    ->boolean()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('users_count')
                     ->label('Employees')

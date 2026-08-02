@@ -23,6 +23,26 @@ class PayrollResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'month';
 
+    /**
+     * The payroll module is gated behind config('hr.payroll_enabled') while the
+     * statutory calculation is under review with finance & HR. When disabled the
+     * resource is hidden from navigation and all its pages deny access (403).
+     */
+    public static function shouldRegisterNavigation(array $parameters = []): bool
+    {
+        return (bool) config('hr.payroll_enabled');
+    }
+
+    public static function canViewAny(): bool
+    {
+        return (bool) config('hr.payroll_enabled');
+    }
+
+    public static function canAccess(): bool
+    {
+        return (bool) config('hr.payroll_enabled');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
