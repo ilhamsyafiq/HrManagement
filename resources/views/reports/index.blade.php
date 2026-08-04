@@ -105,9 +105,7 @@
                                             {{-- Supervisor actions --}}
                                             @if(auth()->user()->isSupervisor())
                                                 @if($report->status == 'pending')
-                                                    <button type="button"
-                                                        @click="src='{{ route('reports.pdf', $report->id) }}'; signAction='{{ route('reports.quicksign', $report->id) }}'; signManualUrl='{{ route('reports.sign.form', $report->id) }}'; signMode=true; open=true;"
-                                                        class="text-emerald-600 hover:text-emerald-800 font-semibold transition duration-150">Sign</button>
+                                                    <a href="{{ route('reports.sign.form', $report->id) }}" class="text-emerald-600 hover:text-emerald-800 font-semibold transition duration-150">Sign</a>
                                                 @endif
                                                 @if($report->status == 'signed' && $report->signed_path)
                                                     <a href="{{ route('reports.download-signed', $report->id) }}" class="text-emerald-600 hover:text-emerald-800 transition duration-150">Download Signed</a>

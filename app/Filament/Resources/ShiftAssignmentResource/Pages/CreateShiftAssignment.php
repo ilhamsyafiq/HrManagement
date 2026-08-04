@@ -23,7 +23,11 @@ class CreateShiftAssignment extends CreateRecord
      */
     protected function handleRecordCreation(array $data): Model
     {
-        $days = $this->data['days'] ?? [];
+        // Flexible days: apply the shift to every day of the week; otherwise use
+        // just the weekdays the admin ticked.
+        $days = ! empty($this->data['flexible_days'])
+            ? array_keys(ShiftAssignment::DAYS)
+            : ($this->data['days'] ?? []);
 
         $first = null;
 

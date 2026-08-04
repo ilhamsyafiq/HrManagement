@@ -44,7 +44,7 @@ class ClaimController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.description' => 'required|string|max:255',
+            'items.*.description' => 'nullable|string|max:255',
             'items.*.amount' => 'required|numeric|min:0.01',
             'items.*.expense_date' => 'required|date',
             'items.*.category' => 'required|in:Transport,Meal,Accommodation,Office Supplies,Medical,Training,Other',
@@ -133,7 +133,7 @@ class ClaimController extends Controller
         }
 
         $request->validate([
-            'description' => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'expense_date' => 'required|date',
             'category' => 'required|in:Transport,Meal,Accommodation,Office Supplies,Medical,Training,Other',

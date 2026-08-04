@@ -258,7 +258,11 @@ class ReportController extends Controller
     {
         $this->authorizeSigning($document);
 
-        return view('reports.sign', compact('document'));
+        // Preload the signer's saved signature so they can just place it
+        // (no need to redraw) — or draw a new one on the page.
+        $storedSignature = Signature::where('user_id', auth()->id())->value('signature_data');
+
+        return view('reports.sign', compact('document', 'storedSignature'));
     }
 
     /**
@@ -283,24 +287,17 @@ class ReportController extends Controller
 
         $request->validate([
             'signature_data' => 'required|string',
+            'page' => 'required|integer|min:1',
+            'pos_x' => 'required|numeric|between:0,1',   // fraction across the page
+            'pos_y' => 'required|numeric|between:0,1',   // fraction down the page
+            'width_frac' => 'nullable|numeric|between:0.05,0.6',
             'comments' => 'nullable|string|max:1000',
-            'annotations' => 'nullable|string',
             'save_default' => 'nullable',
         ]);
 
-        Log::info('Sign request received', [
-            'document_id' => $document->id,
-            'signature_data_length' => strlen($request->signature_data),
-            'comments_length' => strlen($request->comments ?? ''),
-            'annotations_length' => strlen($request->annotations ?? ''),
-        ]);
-
         try {
-            $comments = $request->comments;
-            $annotations = json_decode($request->annotations ?? '[]', true) ?: [];
-
             // Optionally persist the drawn signature as this user's reusable
-            // default so future reports can be signed with one click.
+            // default so future reports only need placing (no redraw).
             if ($request->boolean('save_default') && !empty($request->signature_data)) {
                 Signature::updateOrCreate(
                     ['user_id' => auth()->id()],
@@ -308,22 +305,21 @@ class ReportController extends Controller
                 );
             }
 
-            $signedPath = $this->stampSignature($document, $annotations, $comments);
+            $signedPath = $this->stampSignature($document, $request->signature_data, [
+                'page' => (int) $request->page,
+                'fx' => (float) $request->pos_x,
+                'fy' => (float) $request->pos_y,
+                'wFrac' => (float) ($request->width_frac ?: 0.28),
+            ], $request->comments);
 
             $document->update([
                 'status' => 'signed',
                 'signed_at' => now(),
-                'comments' => $comments,
+                'comments' => $request->comments,
                 'signed_path' => $signedPath,
             ]);
 
             $this->notifyOwnerSigned($document);
-
-            Log::info('Document signed successfully', [
-                'document_id' => $document->id,
-                'signed_path' => $signedPath,
-                'annotations_count' => count($annotations),
-            ]);
 
             return redirect()->route('reports.show', $document->id)->with('success', 'Report signed successfully.');
         } catch (\Throwable $e) {
@@ -332,83 +328,36 @@ class ReportController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return redirect()->back()->with('error', 'Failed to sign the report. Please try again.');
+            return redirect()->back()->with('error', 'Failed to sign the report: ' . $e->getMessage());
         }
     }
 
     /**
-     * One-click sign: stamp the supervisor's STORED default signature onto the
-     * report automatically. Requires the user to have previously saved a
-     * default signature (via the Sign page's "save as default" checkbox).
+     * Signing now requires choosing WHERE the signature goes (each document has
+     * a different signature spot), so this just routes to the placement page.
+     * The signer's saved signature is preloaded there for quick placing.
      */
     public function quickSign(Document $document)
     {
         $this->authorizeSigning($document);
 
-        $signature = Signature::where('user_id', auth()->id())->first();
-
-        if (!$signature || empty($signature->signature_data)) {
-            return redirect()->back()->with('error', "Please create your signature first (open Sign and tick 'save as default').");
-        }
-
-        try {
-            // Build a single signature annotation from the stored image and let
-            // the shared stamping helper place it + an approval mark/date.
-            $annotations = [[
-                'type' => 'signature',
-                'data' => $signature->signature_data,
-                // Placed on the lower-right of the page (in canvas units; the
-                // helper converts these to PDF coordinates just like sign()).
-                'x' => 380,
-                'y' => 520,
-                'width' => 180,
-                'height' => 70,
-                'approved' => true,
-            ]];
-
-            $signedPath = $this->stampSignature($document, $annotations, null);
-
-            $document->update([
-                'status' => 'signed',
-                'signed_at' => now(),
-                'signed_path' => $signedPath,
-            ]);
-
-            $this->notifyOwnerSigned($document);
-
-            Log::info('Document quick-signed successfully', [
-                'document_id' => $document->id,
-                'signed_path' => $signedPath,
-            ]);
-
-            return redirect()->back()->with('success', 'Report signed successfully.');
-        } catch (\Throwable $e) {
-            Log::error('Quick-sign error: ' . $e->getMessage(), [
-                'document_id' => $document->id,
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return redirect()->back()->with('error', 'Failed to sign the report. Please try again.');
-        }
+        return redirect()->route('reports.sign.form', $document->id);
     }
 
     /**
-     * Shared FPDI stamping logic used by both sign() and quickSign().
+     * Re-import every page of the source PDF and stamp the signature image at
+     * the chosen location (fractional page coordinates -> mm) on the chosen
+     * page, with a small date beneath it. Optional comments go on the last page.
+     * Returns the stored (relative) path.
      *
-     * Imports every page of the source PDF, stamps signature/text annotations
-     * (and optional general comments) onto it, writes the result to
-     * reports/signed/... and returns the stored (relative) path.
-     *
-     * @param  array<int, array<string, mixed>>  $annotations
+     * @param  array{page:int,fx:float,fy:float,wFrac:float}  $placement
      */
-    private function stampSignature(Document $document, array $annotations, ?string $comments = null): string
+    private function stampSignature(Document $document, string $signatureImage, array $placement, ?string $comments): string
     {
-        // Make sure the destination directory exists (Laravel 11's `local`
-        // disk root is storage/app/private, so this is relative to it).
+        // Laravel 11's `local` disk root is storage/app/private.
         Storage::makeDirectory('reports/signed');
 
         $pdfPath = Storage::path($document->path);
-
         if (!is_file($pdfPath)) {
             throw new \RuntimeException("Source PDF not found at {$pdfPath}");
         }
@@ -416,87 +365,94 @@ class ReportController extends Controller
         $pdf = new Fpdi();
         $pageCount = $pdf->setSourceFile($pdfPath);
 
-        // Convert annotation coordinates from canvas space (origin top-left)
-        // to PDF space using the same scale factor the Sign page renders with.
-        $processedAnnotations = [];
-        foreach ($annotations as $annotation) {
-            $annotation['pdf_x'] = ($annotation['x'] ?? 0) * 0.75;
-            $annotation['pdf_y'] = (600 - ($annotation['y'] ?? 0)) * 0.75;
-            $processedAnnotations[] = $annotation;
+        $sigTmp = $this->flattenSignatureToTempPng($signatureImage);
+        if (!$sigTmp) {
+            throw new \RuntimeException('Signature image could not be processed.');
         }
 
-        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-            $templateId = $pdf->importPage($pageNo);
-            $pdf->AddPage();
-            $pdf->useTemplate($templateId);
+        $targetPage = min(max(1, $placement['page']), $pageCount);
 
-            foreach ($processedAnnotations as $annotation) {
-                if (($annotation['type'] ?? null) === 'signature') {
-                    $this->stampSignatureImage($pdf, $annotation);
-                } elseif (($annotation['type'] ?? null) === 'text') {
-                    $fontSize = intval($annotation['size'] ?? 12);
-                    $pdf->SetFont($annotation['font'] ?? 'Arial', '', $fontSize);
-                    $pdf->SetTextColor(0, 0, 0);
-                    $pdf->SetXY($annotation['pdf_x'], $annotation['pdf_y']);
-                    $pdf->MultiCell(0, $fontSize * 0.4, $annotation['text'] ?? '', 0, 'L');
+        try {
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $size = $pdf->getTemplateSize($templateId);
+                $orientation = $size['width'] > $size['height'] ? 'L' : 'P';
+                $pdf->AddPage($orientation, [$size['width'], $size['height']]);
+                $pdf->useTemplate($templateId);
+
+                if ($pageNo === $targetPage) {
+                    $this->placeSignature($pdf, (float) $size['width'], (float) $size['height'], $sigTmp, $placement);
+                }
+
+                if ($pageNo === $pageCount && $comments) {
+                    $pdf->SetXY(15, (float) $size['height'] - 18);
+                    $pdf->SetFont('Arial', 'I', 9);
+                    $pdf->SetTextColor(90, 90, 90);
+                    $pdf->MultiCell((float) $size['width'] - 30, 4, $this->latin1('Comments: ' . $comments), 0, 'L');
                 }
             }
 
-            if ($pageNo === $pageCount && $comments) {
-                $pdf->SetFont('Arial', 'I', 10);
-                $pdf->SetTextColor(100, 100, 100);
-                $pdf->SetXY(50, 280);
-                $pdf->MultiCell(0, 5, 'Additional Comments: ' . $comments, 0, 'L');
+            $signedPath = 'reports/signed/signed_' . time() . '_' . $document->original_name;
+            Storage::put($signedPath, $pdf->Output('S'));
+
+            return $signedPath;
+        } finally {
+            @unlink($sigTmp);
+            $base = substr($sigTmp, 0, -4); // the tempnam() base without .png
+            if (is_file($base)) {
+                @unlink($base);
             }
         }
-
-        $signedFilename = 'signed_' . time() . '_' . $document->original_name;
-        $signedPath = 'reports/signed/' . $signedFilename;
-
-        Storage::put($signedPath, $pdf->Output('S'));
-
-        return $signedPath;
     }
 
     /**
-     * Decode a base64 PNG signature and stamp it (with an approval mark and
-     * timestamp) onto the current PDF page.
+     * Stamp the signature image centred on the chosen point (fractional page
+     * coords -> mm), keeping it fully on-page.
      *
-     * IMPORTANT: signature_pad produces a PNG WITH an alpha channel. FPDF cannot
-     * parse alpha-channel PNGs and will attempt a multi-gigabyte allocation,
-     * fataling the request. We therefore ALWAYS flatten the PNG onto a solid
-     * white background via GD before handing it to FPDF, and never fall back to
-     * the raw (transparent) PNG.
-     *
-     * @param  array<string, mixed>  $annotation
+     * @param  array{page:int,fx:float,fy:float,wFrac:float}  $placement
      */
-    private function stampSignatureImage(Fpdi $pdf, array $annotation): void
+    private function placeSignature(Fpdi $pdf, float $pageW, float $pageH, string $sigPath, array $placement): void
     {
-        $dataUri = $annotation['data'] ?? '';
+        $wMm = max(20.0, min($placement['wFrac'] * $pageW, $pageW * 0.5));
+
+        $dims = @getimagesize($sigPath) ?: [200, 80];
+        $ratio = ($dims[0] > 0) ? ($dims[1] / $dims[0]) : 0.4;
+        $hMm = $wMm * $ratio;
+
+        // The click point is the CENTRE of the signature; clamp on-page.
+        $x = $placement['fx'] * $pageW - $wMm / 2;
+        $y = $placement['fy'] * $pageH - $hMm / 2;
+        $x = max(2.0, min($x, $pageW - $wMm - 2));
+        $y = max(2.0, min($y, $pageH - $hMm - 6));
+
+        $pdf->Image($sigPath, $x, $y, $wMm, $hMm, 'PNG');
+    }
+
+    /**
+     * Decode a base64 (signature_pad) PNG and flatten it onto a solid white
+     * background via GD — FPDF cannot parse alpha-channel PNGs. Returns the temp
+     * file path (with a .png suffix), or null if it can't be decoded.
+     */
+    private function flattenSignatureToTempPng(string $dataUri): ?string
+    {
         if (($commaPos = strpos($dataUri, ',')) !== false) {
             $dataUri = substr($dataUri, $commaPos + 1);
         }
 
         $binary = base64_decode($dataUri, true);
-        if ($binary === false || $binary === '') {
-            throw new \RuntimeException('Signature image could not be decoded from base64.');
-        }
-
-        if (!function_exists('imagecreatefromstring')) {
-            throw new \RuntimeException('GD extension is required to stamp signatures but is not available.');
+        if ($binary === false || $binary === '' || !function_exists('imagecreatefromstring')) {
+            return null;
         }
 
         $src = @imagecreatefromstring($binary);
         if ($src === false) {
-            throw new \RuntimeException('Signature image is not a valid PNG.');
+            return null;
         }
 
         $w = imagesx($src);
         $h = imagesy($src);
         $canvas = imagecreatetruecolor($w, $h);
-        $white = imagecolorallocate($canvas, 255, 255, 255);
-        imagefilledrectangle($canvas, 0, 0, $w, $h, $white);
-        // Preserve alpha while compositing the strokes onto the white canvas.
+        imagefilledrectangle($canvas, 0, 0, $w, $h, imagecolorallocate($canvas, 255, 255, 255));
         imagealphablending($canvas, true);
         imagecopyresampled($canvas, $src, 0, 0, 0, 0, $w, $h, $w, $h);
 
@@ -507,37 +463,22 @@ class ReportController extends Controller
         imagedestroy($canvas);
 
         if ($flattened === false || $flattened === '') {
-            throw new \RuntimeException('Failed to flatten signature PNG.');
+            return null;
         }
 
-        $tmpPath = tempnam(sys_get_temp_dir(), 'sig') . '.png';
+        $path = tempnam(sys_get_temp_dir(), 'sig') . '.png';
+        file_put_contents($path, $flattened);
 
-        try {
-            file_put_contents($tmpPath, $flattened);
+        return $path;
+    }
 
-            $imgW = isset($annotation['width']) ? $annotation['width'] * 0.75 : 40;
-            $imgH = isset($annotation['height']) ? $annotation['height'] * 0.75 : 15;
-
-            $pdf->Image($tmpPath, $annotation['pdf_x'], $annotation['pdf_y'], $imgW, $imgH, 'PNG');
-
-            // Approval mark (the "chop") drawn as text, used by one-click sign.
-            if (!empty($annotation['approved'])) {
-                $pdf->SetFont('Arial', 'B', 9);
-                $pdf->SetTextColor(16, 122, 87);
-                $pdf->SetXY($annotation['pdf_x'], $annotation['pdf_y'] - 5);
-                $pdf->Cell(0, 4, 'APPROVED', 0, 1);
-            }
-
-            // Timestamp beneath the signature.
-            $pdf->SetFont('Arial', '', 8);
-            $pdf->SetTextColor(128, 128, 128);
-            $pdf->SetXY($annotation['pdf_x'], $annotation['pdf_y'] + $imgH);
-            $pdf->Cell(0, 4, now()->format('M j, Y g:i A'), 0, 1);
-        } finally {
-            if (file_exists($tmpPath)) {
-                @unlink($tmpPath);
-            }
-        }
+    /**
+     * FPDF core fonts are Latin-1 only; transliterate UTF-8 so names/comments
+     * don't render as mojibake.
+     */
+    private function latin1(string $text): string
+    {
+        return @iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $text) ?: $text;
     }
 
     /**

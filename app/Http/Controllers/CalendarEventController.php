@@ -160,9 +160,45 @@ class CalendarEventController extends Controller
                 ];
             });
 
+        // Leaves overlapping this month: the user's own, plus their team's when
+        // they manage anyone (direct reports / a department they head) or are admin.
+        $leaveUserIds = collect([$user->id]);
+        if ($user->isSuperAdmin() || $user->isAdmin()) {
+            $leaveUserIds = \App\Models\User::pluck('id');
+        } else {
+            $teamIds = $user->subordinates()->pluck('id');
+            $headedDeptIds = \App\Models\Department::where('hod_id', $user->id)->pluck('id');
+            if ($headedDeptIds->isNotEmpty()) {
+                $teamIds = $teamIds->merge(\App\Models\User::whereIn('department_id', $headedDeptIds)->pluck('id'));
+            }
+            $leaveUserIds = $leaveUserIds->merge($teamIds);
+        }
+
+        $leaveLabels = ['AL' => 'Annual Leave', 'MC' => 'Medical Leave', 'Emergency' => 'Emergency Leave', 'Intern' => 'Intern Leave'];
+        $leaves = \App\Models\Leave::whereIn('user_id', $leaveUserIds->unique())
+            ->whereIn('status', ['Approved', 'Pending'])
+            ->whereDate('start_date', '<=', $endDate->toDateString())
+            ->whereDate('end_date', '>=', $startDate->toDateString())
+            ->with('user:id,name')
+            ->get()
+            ->map(function ($leave) use ($user, $leaveLabels) {
+                return [
+                    'id' => $leave->id,
+                    'title' => $leaveLabels[$leave->type] ?? $leave->type,
+                    'type' => $leave->type,
+                    'status' => $leave->status,
+                    'start_date' => $leave->start_date->format('Y-m-d'),
+                    'end_date' => $leave->end_date->format('Y-m-d'),
+                    'is_own' => $leave->user_id === $user->id,
+                    'user_name' => $leave->user->name ?? 'Unknown',
+                ];
+            })
+            ->values();
+
         return response()->json([
             'events' => $myEvents->merge($subordinateEvents)->values(),
             'holidays' => $holidays,
+            'leaves' => $leaves,
             'month' => (int) $month,
             'year' => (int) $year,
         ]);

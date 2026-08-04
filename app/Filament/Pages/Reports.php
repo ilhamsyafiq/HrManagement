@@ -5,16 +5,13 @@ namespace App\Filament\Pages;
 use App\Models\Department;
 use App\Models\User;
 use App\Services\ReportDataService;
-use App\Services\ReportPdfService;
 use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Reports extends Page implements HasForms
 {
@@ -24,7 +21,7 @@ class Reports extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-document-arrow-down';
 
-    protected static ?string $title = 'Reports (PDF)';
+    protected static ?string $title = 'Reports';
 
     protected static ?int $navigationSort = 99;
 
@@ -50,21 +47,21 @@ class Reports extends Page implements HasForms
         return $form
             ->schema([
                 DatePicker::make('start_date')
-                    ->label('Start Date')
+                    ->label('Start date')
                     ->native(false)
-                    ->displayFormat('Y-m-d'),
+                    ->displayFormat('d M Y'),
                 DatePicker::make('end_date')
-                    ->label('End Date')
+                    ->label('End date')
                     ->native(false)
-                    ->displayFormat('Y-m-d'),
+                    ->displayFormat('d M Y'),
                 Select::make('department_id')
                     ->label('Department')
-                    ->placeholder('All Departments')
+                    ->placeholder('All departments')
                     ->options(fn () => Department::orderBy('name')->pluck('name', 'id'))
                     ->searchable(),
                 Select::make('user_id')
                     ->label('Employee')
-                    ->placeholder('All Employees')
+                    ->placeholder('All employees')
                     ->options(fn () => User::orderBy('name')->pluck('name', 'id'))
                     ->searchable(),
             ])
@@ -73,8 +70,23 @@ class Reports extends Page implements HasForms
     }
 
     /**
-     * Filters as expected by ReportPdfService (dates as Y-m-d strings).
+     * Report definitions for the card grid.
      *
+     * @return array<int, array<string, string>>
+     */
+    public function reportCards(): array
+    {
+        return [
+            ['action' => 'attendanceReportAction', 'label' => 'Attendance', 'icon' => 'heroicon-o-clipboard-document-list', 'desc' => 'Clock in/out, late arrivals and overtime per employee.'],
+            ['action' => 'leaveReportAction', 'label' => 'Leave', 'icon' => 'heroicon-o-calendar-days', 'desc' => 'Annual, medical and emergency leave taken in the range.'],
+            ['action' => 'employeeReportAction', 'label' => 'Employee', 'icon' => 'heroicon-o-users', 'desc' => 'Directory with role, department and employment status.'],
+            ['action' => 'departmentReportAction', 'label' => 'Department', 'icon' => 'heroicon-o-building-office-2', 'desc' => 'Headcount and totals grouped by department.'],
+            ['action' => 'monthlySummaryReportAction', 'label' => 'Monthly summary', 'icon' => 'heroicon-o-chart-bar', 'desc' => 'Attendance and leave totals for the selected month.'],
+            ['action' => 'auditReportAction', 'label' => 'Audit', 'icon' => 'heroicon-o-shield-check', 'desc' => 'Record of changes with old → new values.'],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function filters(): array
@@ -89,18 +101,6 @@ class Reports extends Page implements HasForms
         ];
     }
 
-    protected function download(string $pdf, string $filename): StreamedResponse
-    {
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf;
-        }, $filename, ['Content-Type' => 'application/pdf']);
-    }
-
-    /**
-     * Inline preview URL for a report type, carrying the current form filters as
-     * query params. The preview modal (filament.reports.pdf-preview) reuses this
-     * URL for its iframe, Print, and Download (adds ?download=1) buttons.
-     */
     protected function reportUrl(string $type): string
     {
         $query = http_build_query(array_filter([
@@ -114,74 +114,53 @@ class Reports extends Page implements HasForms
     }
 
     /**
-     * A header action that opens the PDF in a preview modal (view first), with
-     * Print / Download available inside the modal instead of an instant download.
+     * One action per report — opens a tabbed modal: on-screen Data + PDF preview
+     * (with print/download inside). Same filters/queries as the PDF.
      */
-    protected function previewAction(string $type, string $label, string $icon, string $color): Action
+    protected function buildReportAction(string $name, string $type, string $label): Action
     {
-        return Action::make($type)
-            ->label($label)
-            ->icon($icon)
-            ->color($color)
-            ->modalHeading($label)
+        return Action::make($name)
+            ->label('Open report')
+            ->icon('heroicon-m-arrow-up-right')
+            ->color('primary')
+            ->modalHeading($label . ' report')
             ->modalWidth('7xl')
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close')
-            ->modalContent(fn () => view('filament.reports.pdf-preview', [
+            ->modalContent(fn () => view('filament.reports.report-modal', [
+                'title' => $label,
+                'data' => app(ReportDataService::class)->{$type}($this->filters()),
                 'url' => $this->reportUrl($type),
             ]));
     }
 
-    /**
-     * A header action that opens the report's DATA as an on-screen table (built by
-     * ReportDataService using the same queries/filters as the PDF) so the admin can
-     * review the records before printing or downloading. Reads the current form
-     * filters at the moment the modal opens.
-     */
-    protected function viewDataAction(string $type, string $label, string $icon, string $color): Action
+    public function attendanceReportAction(): Action
     {
-        return Action::make($type . 'Data')
-            ->label('View Data')
-            ->icon($icon)
-            ->color($color)
-            ->modalHeading($label . ' — Data')
-            ->modalWidth('7xl')
-            ->modalSubmitAction(false)
-            ->modalCancelActionLabel('Close')
-            ->modalContent(fn () => view('filament.reports.data-table', [
-                'data' => app(ReportDataService::class)->{$type}($this->filters()),
-                'title' => $label,
-            ]));
+        return $this->buildReportAction('attendanceReport', 'attendance', 'Attendance');
     }
 
-    /**
-     * Groups a single report's two actions ("View Data" + "Preview PDF") under one
-     * tidy dropdown button in the header.
-     */
-    protected function reportGroup(string $type, string $label, string $icon, string $color): ActionGroup
+    public function leaveReportAction(): Action
     {
-        return ActionGroup::make([
-            $this->viewDataAction($type, $label, $icon, $color),
-            $this->previewAction($type, $label, $icon, $color),
-        ])
-            ->label($label)
-            ->icon($icon)
-            ->color($color)
-            ->button();
+        return $this->buildReportAction('leaveReport', 'leave', 'Leave');
     }
 
-    /**
-     * @return array<ActionGroup>
-     */
-    protected function getHeaderActions(): array
+    public function employeeReportAction(): Action
     {
-        return [
-            $this->reportGroup('attendance', 'Attendance Report', 'heroicon-o-clipboard-document-list', 'primary'),
-            $this->reportGroup('leave', 'Leave Report', 'heroicon-o-calendar-days', 'success'),
-            $this->reportGroup('employee', 'Employee Report', 'heroicon-o-users', 'warning'),
-            $this->reportGroup('department', 'Department Report', 'heroicon-o-building-office-2', 'gray'),
-            $this->reportGroup('monthlySummary', 'Monthly Summary', 'heroicon-o-chart-bar', 'info'),
-            $this->reportGroup('audit', 'Audit Report', 'heroicon-o-shield-check', 'danger'),
-        ];
+        return $this->buildReportAction('employeeReport', 'employee', 'Employee');
+    }
+
+    public function departmentReportAction(): Action
+    {
+        return $this->buildReportAction('departmentReport', 'department', 'Department');
+    }
+
+    public function monthlySummaryReportAction(): Action
+    {
+        return $this->buildReportAction('monthlySummaryReport', 'monthlySummary', 'Monthly summary');
+    }
+
+    public function auditReportAction(): Action
+    {
+        return $this->buildReportAction('auditReport', 'audit', 'Audit');
     }
 }

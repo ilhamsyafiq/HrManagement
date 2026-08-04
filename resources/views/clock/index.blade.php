@@ -147,7 +147,14 @@
             document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', options);
         }
 
+        const GEOFENCE_ENFORCED = @json(app(\App\Services\GeofenceService::class)->isEnforced());
+
         function getLocation(successCallback, errorCallback = null) {
+            // Geofencing off — no location check needed, clock in fast.
+            if (!GEOFENCE_ENFORCED) {
+                successCallback({ lat: null, lng: null, accuracy: null, is_mock: false });
+                return;
+            }
             if (navigator.geolocation) {
                 showStatus('Getting your location...', 'info');
                 navigator.geolocation.getCurrentPosition(

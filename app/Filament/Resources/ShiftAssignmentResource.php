@@ -46,12 +46,21 @@ class ShiftAssignmentResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required(),
+                // Part-time / flexible: works any day — no need to pick weekdays.
+                Forms\Components\Toggle::make('flexible_days')
+                    ->label('Flexible days (part-time)')
+                    ->helperText('On: this employee can work any day — the shift is applied to every day, so there is no need to tick weekdays.')
+                    ->live()
+                    ->default(false)
+                    ->dehydrated(false)
+                    ->visibleOn('create'),
                 // Create: assign the same shift to several weekdays at once.
                 Forms\Components\CheckboxList::make('days')
                     ->label('Days of week')
                     ->options(ShiftAssignment::DAYS)
                     ->columns(2)
-                    ->required()
+                    ->required(fn (Forms\Get $get) => ! $get('flexible_days'))
+                    ->hidden(fn (Forms\Get $get) => (bool) $get('flexible_days'))
                     ->helperText('Tick every day this shift applies. Days left unticked are treated as rest/off days.')
                     ->dehydrated(false)
                     ->visibleOn('create'),

@@ -43,6 +43,16 @@ class Attendance extends Model
         return $this->belongsTo(User::class, 'edited_by');
     }
 
+    /**
+     * Alias so views can read `is_edited` (the column is `is_manually_edited`).
+     * Several Blade views reference `$attendance->is_edited`; without this the
+     * "Edited" badge and status logic silently never fire.
+     */
+    public function getIsEditedAttribute(): bool
+    {
+        return (bool) $this->is_manually_edited;
+    }
+
     public function getFormattedWorkHoursAttribute()
     {
         $workHours = $this->total_work_hours;

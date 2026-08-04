@@ -50,6 +50,7 @@ class User extends Authenticatable implements FilamentUser
         'al_entitlement',
         'mc_entitlement',
         'emergency_entitlement',
+        'dashboard_preferences',
     ];
 
     /**
@@ -74,6 +75,7 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'internship_start_date' => 'date',
             'internship_end_date' => 'date',
+            'dashboard_preferences' => 'array',
         ];
     }
 
@@ -125,6 +127,13 @@ class User extends Authenticatable implements FilamentUser
     public function subordinates()
     {
         return $this->hasMany(User::class, 'supervisor_id');
+    }
+
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+            ->withPivot('last_read_message_id')
+            ->withTimestamps();
     }
 
     public function attendances()

@@ -345,8 +345,8 @@
                         @csrf
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-                                <input type="text" name="description" required class="block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl shadow-sm text-sm" placeholder="e.g. Grab ride to client office">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-gray-400 font-normal">(optional)</span></label>
+                                <input type="text" name="description" class="block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl shadow-sm text-sm" placeholder="e.g. Grab ride to client office">
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>

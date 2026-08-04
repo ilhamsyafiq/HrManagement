@@ -4,8 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\BreakRecord;
+use App\Models\Department;
+use App\Models\User;
+use App\Services\AttendanceCalendarService;
 use App\Services\AttendanceService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class AttendanceController extends Controller
@@ -17,7 +22,7 @@ class AttendanceController extends Controller
         $this->attendanceService = $attendanceService;
     }
 
-    public function index()
+    public function index(AttendanceCalendarService $calendarService)
     {
         $user = Auth::user();
         $targetUserId = request('user', $user->id);
@@ -32,12 +37,153 @@ class AttendanceController extends Controller
             abort(403, 'Unauthorized access to attendance records.');
         }
 
-        $attendances = Attendance::with('breaks')
-            ->where('user_id', $targetUserId)
-            ->orderBy('date', 'desc')
-            ->paginate(20);
+        $targetUser = $targetUserId == $user->id ? $user : User::findOrFail($targetUserId);
+        $month = $this->resolveMonth(request('month'));
+        $view = request('view') === 'list' ? 'list' : 'calendar';
 
-        return view('attendance.index', compact('attendances'));
+        // Legacy flat list (kept as a toggle).
+        if ($view === 'list') {
+            $attendances = Attendance::with('breaks')
+                ->where('user_id', $targetUserId)
+                ->orderBy('date', 'desc')
+                ->paginate(20);
+
+            return view('attendance.index', [
+                'view' => 'list',
+                'attendances' => $attendances,
+                'targetUser' => $targetUser,
+                'month' => $month,
+                'canViewTeam' => $this->canViewTeam($user),
+            ]);
+        }
+
+        return view('attendance.index', [
+            'view' => 'calendar',
+            'calendar' => $calendarService->buildMonth($targetUser, $month->copy()),
+            'targetUser' => $targetUser,
+            'month' => $month,
+            'canViewTeam' => $this->canViewTeam($user),
+        ]);
+    }
+
+    /**
+     * Team attendance matrix (Supervisors / HODs / Admins). Shows each teammate's
+     * daily status for a month so leave (AL) can be planned around the team.
+     */
+    public function team(AttendanceCalendarService $calendarService)
+    {
+        $user = Auth::user();
+
+        if (! $this->canViewTeam($user)) {
+            abort(403, 'You do not have a team to view.');
+        }
+
+        $month = $this->resolveMonth(request('month'));
+        $isAdmin = $user->isAdmin() || $user->isSuperAdmin();
+
+        $departmentId = request('department') ? (int) request('department') : null;
+        $members = $this->resolveTeam($user, $departmentId);
+
+        $rows = $members->map(fn (User $m) => [
+            'user' => $m,
+            'calendar' => $calendarService->buildMonth($m, $month->copy()),
+        ])->values();
+
+        // Per-day "on leave" counts across the team, for clash spotting.
+        $daysInMonth = $month->daysInMonth;
+        $leaveCounts = array_fill(1, $daysInMonth, 0);
+        foreach ($rows as $row) {
+            foreach ($row['calendar']['days'] as $day) {
+                if ($day['type'] === 'leave') {
+                    $leaveCounts[$day['day']]++;
+                }
+            }
+        }
+
+        return view('attendance.team', [
+            'rows' => $rows,
+            'month' => $month,
+            'leaveCounts' => $leaveCounts,
+            'departments' => $isAdmin ? Department::orderBy('name')->get() : collect(),
+            'departmentId' => $departmentId,
+            'isAdmin' => $isAdmin,
+            // Managers see the leave TYPE (AL/MC/EL); peers only see "on leave"
+            // (keeps medical/personal leave private from same-dept colleagues).
+            'showLeaveType' => $this->managesAnyone($user),
+        ]);
+    }
+
+    /**
+     * Parse a 'Y-m' month selector, defaulting to the current month.
+     */
+    private function resolveMonth(?string $input): Carbon
+    {
+        if ($input) {
+            try {
+                return Carbon::createFromFormat('Y-m', $input, 'Asia/Kuala_Lumpur')->startOfMonth();
+            } catch (\Exception $e) {
+                // fall through to current month
+            }
+        }
+
+        return Carbon::now('Asia/Kuala_Lumpur')->startOfMonth();
+    }
+
+    /**
+     * Whether the user may see a team view at all. Everyone in a department can
+     * see their department; managers/admins additionally covered below.
+     */
+    private function canViewTeam(User $user): bool
+    {
+        return $user->isAdmin()
+            || $user->isSuperAdmin()
+            || $user->department_id !== null
+            || $user->subordinates()->exists()
+            || Department::where('hod_id', $user->id)->exists();
+    }
+
+    /**
+     * Whether the user manages anyone (direct reports or a department they head)
+     * or is an admin — used to decide if they may see leave *types* vs. just
+     * "on leave" for their same-department peers.
+     */
+    private function managesAnyone(User $user): bool
+    {
+        return $user->isAdmin()
+            || $user->isSuperAdmin()
+            || $user->subordinates()->exists()
+            || Department::where('hod_id', $user->id)->exists();
+    }
+
+    /**
+     * The set of users this viewer may see: direct reports + members of any
+     * department they head + their own department (so a regular employee sees
+     * their same-department colleagues) + themselves. Admins see everyone.
+     */
+    private function resolveTeam(User $user, ?int $departmentId = null): Collection
+    {
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
+            return User::query()
+                ->when($departmentId, fn ($q) => $q->where('department_id', $departmentId))
+                ->orderBy('name')
+                ->get();
+        }
+
+        $ids = $user->subordinates()->pluck('id');
+
+        $deptIds = Department::where('hod_id', $user->id)->pluck('id');
+        if ($user->department_id) {
+            $deptIds = $deptIds->push($user->department_id);
+        }
+        if ($deptIds->isNotEmpty()) {
+            $ids = $ids->merge(User::whereIn('department_id', $deptIds->unique())->pluck('id'));
+        }
+
+        $ids = $ids->push($user->id); // always include self
+
+        return User::whereIn('id', $ids->unique())
+            ->orderBy('name')
+            ->get();
     }
 
     public function clockIn(Request $request)

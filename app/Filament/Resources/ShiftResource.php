@@ -47,6 +47,8 @@ class ShiftResource extends Resource
                 Forms\Components\Toggle::make('is_flexible')
                     ->label('Flexible hours')
                     ->helperText('Flexible hours: no late / early-leave tracking; employee only needs to fulfil total hours.')
+                    // Live so start/end time hide + drop their required rule the moment this is toggled.
+                    ->live()
                     ->default(false),
                 Forms\Components\Repeater::make('segments')
                     ->relationship()

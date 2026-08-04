@@ -43,45 +43,29 @@
 
                     <div class="p-6 space-y-6">
 
-                        {{-- Recipient --}}
+                        {{-- Recipient — de-duplicated, grouped by role (native select = always reliable) --}}
+                        @php
+                            $recipientsByRole = $recipients->unique('id')->sortBy('name')
+                                ->groupBy(fn ($r) => $r->role->name ?? 'Other');
+                        @endphp
                         <div>
                             <label for="receiver_id" class="block text-sm font-medium text-gray-700 mb-1.5">Recipient</label>
-                            <select id="receiver_id" name="receiver_id" required class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl shadow-sm transition-colors duration-200">
-                                <option value="">Select a recipient...</option>
-                                @if(isset($colleagues) && $colleagues->isNotEmpty())
-                                    <optgroup label="My Team (Same Supervisor)">
-                                        @foreach($colleagues as $recipient)
-                                            <option value="{{ $recipient->id }}" {{ old('receiver_id') == $recipient->id ? 'selected' : '' }}>
-                                                {{ $recipient->name }} ({{ $recipient->role->name ?? 'N/A' }})
+                            <select id="receiver_id" name="receiver_id" required
+                                class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl shadow-sm text-sm py-2.5">
+                                <option value="">Select a recipient…</option>
+                                @foreach($recipientsByRole as $role => $people)
+                                    <optgroup label="{{ $role }}">
+                                        @foreach($people as $r)
+                                            <option value="{{ $r->id }}" {{ old('receiver_id') == $r->id ? 'selected' : '' }}>
+                                                {{ $r->name }}{{ $r->department ? ' — ' . $r->department->name : '' }}
                                             </option>
                                         @endforeach
                                     </optgroup>
-                                @endif
-                                @if(isset($grouped))
-                                    @foreach($grouped as $role => $users)
-                                        <optgroup label="{{ $role }}">
-                                            @foreach($users as $recipient)
-                                                <option value="{{ $recipient->id }}" {{ old('receiver_id') == $recipient->id ? 'selected' : '' }}>
-                                                    {{ $recipient->name }}{{ $recipient->department ? ' - ' . $recipient->department->name : '' }}
-                                                </option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endforeach
-                                @endif
-                                @if(isset($byDept) && $byDept->isNotEmpty())
-                                    @foreach($byDept as $dept => $users)
-                                        <optgroup label="Dept: {{ $dept }}">
-                                            @foreach($users as $recipient)
-                                                <option value="{{ $recipient->id }}" {{ old('receiver_id') == $recipient->id ? 'selected' : '' }}>
-                                                    {{ $recipient->name }} ({{ $recipient->role->name ?? 'N/A' }})
-                                                </option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endforeach
-                                @endif
+                                @endforeach
                             </select>
+                            @error('receiver_id')<p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>@enderror
                             @if($recipients->isEmpty())
-                                <p class="mt-2 text-sm text-gray-500">No recipients available. You can only message users within your organizational hierarchy.</p>
+                                <p class="mt-2 text-sm text-gray-500">No recipients available — you can only message people in your organization.</p>
                             @endif
                         </div>
 

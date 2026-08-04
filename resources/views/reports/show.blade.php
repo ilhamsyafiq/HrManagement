@@ -247,14 +247,13 @@
                         {{-- Supervisor actions --}}
                         @if(auth()->user()->isSupervisor())
                             @if($document->status == 'pending')
-                                <button type="button"
-                                    @click="src='{{ route('reports.pdf', $document->id) }}'; signAction='{{ route('reports.quicksign', $document->id) }}'; signManualUrl='{{ route('reports.sign.form', $document->id) }}'; signMode=true; open=true;"
+                                <a href="{{ route('reports.sign.form', $document->id) }}"
                                     class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                                     </svg>
                                     Sign Report
-                                </button>
+                                </a>
                             @endif
                             @if($document->status == 'signed' && $document->signed_path)
                                 <a href="{{ route('reports.download-signed', $document->id) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">

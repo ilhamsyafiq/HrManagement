@@ -28,10 +28,6 @@ Route::middleware(['web', 'auth'])->group(function () {
         Route::get('/reports/{document}/download-signed', [\App\Http\Controllers\ReportController::class, 'downloadSigned'])->name('reports.download-signed');
         Route::get('/reports/{document}/preview', [\App\Http\Controllers\ReportController::class, 'preview'])->name('reports.preview');
         Route::post('/reports/{document}/submit', [\App\Http\Controllers\ReportController::class, 'submit'])->name('reports.submit');
-        Route::get('/reports/{document}/sign-form', [\App\Http\Controllers\ReportController::class, 'showSignForm'])->name('reports.sign.form');
-        Route::post('/reports/{document}/sign', [\App\Http\Controllers\ReportController::class, 'sign'])->name('reports.sign');
-        // One-click sign: stamp the supervisor's stored signature onto the PDF.
-        Route::post('/reports/{document}/quick-sign', [\App\Http\Controllers\ReportController::class, 'quickSign'])->name('reports.quicksign');
         Route::resource('reports', \App\Http\Controllers\ReportController::class)->parameters(['reports' => 'document']);
 
         // Clock routes
@@ -54,9 +50,21 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/reports/{document}/pdf', [\App\Http\Controllers\ReportController::class, 'viewPdf'])->name('reports.pdf');
     Route::get('/reports/{document}/pdf-signed', [\App\Http\Controllers\ReportController::class, 'viewPdfSigned'])->name('reports.pdf.signed');
 
+    // Report signing — OUTSIDE redirect.admin so Admin/Super Admin can sign too
+    // (e.g. interns with no assigned supervisor fall back to admins). Authorization
+    // (owner's supervisor / admin) is enforced by authorizeSigning() in the controller.
+    Route::get('/reports/{document}/sign-form', [\App\Http\Controllers\ReportController::class, 'showSignForm'])->name('reports.sign.form');
+    Route::post('/reports/{document}/sign', [\App\Http\Controllers\ReportController::class, 'sign'])->name('reports.sign');
+    // One-click sign: stamp the signer's stored signature onto the PDF.
+    Route::post('/reports/{document}/quick-sign', [\App\Http\Controllers\ReportController::class, 'quickSign'])->name('reports.quicksign');
+
     // Admin statistics PDFs (Attendance/Leave/Employee/Department/Monthly/Audit)
     // streamed inline for the Filament Reports page preview modal (?download=1 = attachment).
     Route::get('/admin-reports/pdf/{type}', [\App\Http\Controllers\AdminReportPdfController::class, 'show'])->name('admin.reports.pdf');
+
+    // Team attendance matrix (Supervisor / HOD / Admin) — OUTSIDE redirect.admin
+    // so admins reach it too. Access + team scoping enforced in the controller.
+    Route::get('/attendance/team', [AttendanceController::class, 'team'])->name('attendance.team');
 
     // Impersonation (Super Admin only; guarded in the controller).
     Route::get('/impersonate/{user}', [\App\Http\Controllers\ImpersonationController::class, 'start'])->name('impersonate.start');
@@ -91,6 +99,15 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/messages/bulk', [MessageController::class, 'bulkStore'])->name('messages.bulk');
     Route::get('/messages/{message}', [MessageController::class, 'show'])->name('messages.show');
     Route::post('/messages/{message}/reply', [MessageController::class, 'reply'])->name('messages.reply');
+
+    // Chat widget API (floating WhatsApp-style chat; polling-based).
+    Route::prefix('chat')->group(function () {
+        Route::get('/conversations', [\App\Http\Controllers\ChatController::class, 'conversations'])->name('chat.conversations');
+        Route::post('/conversations', [\App\Http\Controllers\ChatController::class, 'start'])->name('chat.start');
+        Route::get('/conversations/{conversation}/messages', [\App\Http\Controllers\ChatController::class, 'messages'])->name('chat.messages');
+        Route::post('/conversations/{conversation}/messages', [\App\Http\Controllers\ChatController::class, 'send'])->name('chat.send');
+        Route::get('/recipients', [\App\Http\Controllers\ChatController::class, 'recipients'])->name('chat.recipients');
+    });
 
     // Announcements - accessible by all authenticated users
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');

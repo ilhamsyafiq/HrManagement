@@ -52,5 +52,10 @@
                 {{ $slot }}
             </main>
         </div>
+
+        {{-- Floating chat widget (self-service Blade users) --}}
+        @auth
+            <x-chat-widget />
+        @endauth
     </body>
 </html>

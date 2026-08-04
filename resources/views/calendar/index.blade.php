@@ -93,6 +93,22 @@
                         <span class="w-3 h-3 rounded-full bg-blue-500"></span>
                         <span class="text-gray-600 dark:text-gray-400">My Events</span>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-blue-200"></span>
+                        <span class="text-gray-600 dark:text-gray-400">Annual (AL)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-rose-200"></span>
+                        <span class="text-gray-600 dark:text-gray-400">Medical (MC)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded bg-amber-200"></span>
+                        <span class="text-gray-600 dark:text-gray-400">Emergency</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded border border-dashed border-gray-400"></span>
+                        <span class="text-gray-600 dark:text-gray-400">Pending leave</span>
+                    </div>
                     @if($isSupervisor)
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-purple-500"></span>
@@ -429,6 +445,7 @@
         const currentYear = {{ $year }};
         let calendarEvents = [];
         let calendarHolidays = [];
+        let calendarLeaves = [];
         let currentViewEvent = null;
         let currentViewHoliday = null;
 
@@ -446,6 +463,7 @@
             .then(data => {
                 calendarEvents = data.events;
                 calendarHolidays = data.holidays;
+                calendarLeaves = data.leaves || [];
                 renderCalendar();
             })
             .catch(error => {
@@ -524,6 +542,25 @@
                         e.stopPropagation();
                         viewHoliday(holiday);
                     };
+                    cell.appendChild(tag);
+                });
+
+                // Leaves covering this day (own + team for managers)
+                const leaveColors = {
+                    'AL': 'bg-blue-100 text-blue-800',
+                    'MC': 'bg-rose-100 text-rose-800',
+                    'Emergency': 'bg-amber-100 text-amber-800',
+                    'Intern': 'bg-indigo-100 text-indigo-800',
+                };
+                const dayLeaves = calendarLeaves.filter(lv => dateStr >= lv.start_date && dateStr <= lv.end_date);
+                dayLeaves.forEach(leave => {
+                    const tag = document.createElement('div');
+                    const bg = leaveColors[leave.type] || 'bg-blue-100 text-blue-800';
+                    const pending = leave.status === 'Pending';
+                    tag.className = `text-xs px-1.5 py-0.5 rounded ${bg} mb-1 truncate font-medium ${pending ? 'border border-dashed border-current opacity-80' : ''}`;
+                    const who = leave.is_own ? 'You' : leave.user_name;
+                    tag.textContent = leave.is_own ? leave.title : `${leave.user_name}: ${leave.type}`;
+                    tag.title = `${who} — ${leave.title}${pending ? ' (Pending)' : ' (Approved)'}`;
                     cell.appendChild(tag);
                 });
 

@@ -134,6 +134,16 @@ class GeofenceService
      * deactivating every office must allow clock-in/out without any location
      * requirement or distance check.
      */
+    /**
+     * Whether location must actually be checked on clock in/out — i.e. the
+     * global toggle is on AND geofencing is active (at least one active office
+     * or config fallback). When false, the client can clock in without GPS.
+     */
+    public function isEnforced(): bool
+    {
+        return (bool) config('geofence.enabled') && $this->geofenceActive();
+    }
+
     public function geofenceActive(): bool
     {
         // Cache active offices for 10 minutes (same key/TTL as findNearestOffice).
