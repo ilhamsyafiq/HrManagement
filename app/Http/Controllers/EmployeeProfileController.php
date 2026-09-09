@@ -150,7 +150,7 @@ class EmployeeProfileController extends Controller
 
         abort_unless(Storage::exists($document->file_path), 404);
 
-        return Storage::download($document->file_path, $document->file_name);
+        return response()->download(Storage::path($document->file_path), $document->file_name);
     }
 
     public function deleteDocument(EmployeeDocument $document)

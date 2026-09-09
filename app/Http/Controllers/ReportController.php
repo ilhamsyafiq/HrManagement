@@ -153,7 +153,10 @@ class ReportController extends Controller
     {
         $this->authorizeView($document);
 
-        return Storage::download($document->path, $document->original_name);
+        // Use Symfony's BinaryFileResponse (fread loop) rather than
+        // Storage::download(), which relies on fpassthru() — disabled in the
+        // production PHP-FPM (RunCloud default disable_functions).
+        return response()->download(Storage::path($document->path), $document->original_name);
     }
 
     public function downloadSigned(Document $document)
@@ -164,7 +167,7 @@ class ReportController extends Controller
             return redirect()->back()->with('error', 'Signed version is not available.');
         }
 
-        return Storage::download($document->signed_path, 'signed_' . $document->original_name);
+        return response()->download(Storage::path($document->signed_path), 'signed_' . $document->original_name);
     }
 
     public function preview(Document $document)

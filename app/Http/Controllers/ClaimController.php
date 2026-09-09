@@ -204,7 +204,7 @@ class ClaimController extends Controller
         abort_if(! $item->receipt_path, 404);
         abort_unless(Storage::exists($item->receipt_path), 404);
 
-        return Storage::download($item->receipt_path);
+        return response()->download(Storage::path($item->receipt_path));
     }
 
     public function approve(Claim $claim)
