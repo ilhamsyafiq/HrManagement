@@ -75,7 +75,11 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center gap-3">
                                             <a href="{{ route('reports.show', $report->id) }}" class="text-indigo-600 hover:text-indigo-800 transition duration-150">View</a>
-                                            <button type="button" @click="src='{{ route('reports.pdf', $report->id) }}'; open=true" class="text-purple-600 hover:text-purple-800 transition duration-150">Preview</button>
+                                            @if($report->isPdf())
+                                                <button type="button" @click="src='{{ route('reports.pdf', $report->id) }}'; open=true" class="text-purple-600 hover:text-purple-800 transition duration-150">Preview</button>
+                                            @else
+                                                <a href="{{ route('reports.download', $report->id) }}" class="text-purple-600 hover:text-purple-800 transition duration-150" title="Word document — re-upload as PDF to preview/sign">Download</a>
+                                            @endif
                                             @if($report->status == 'signed' && $report->signed_path)
                                                 <button type="button" @click="src='{{ route('reports.pdf.signed', $report->id) }}'; open=true" class="text-emerald-600 hover:text-emerald-800 transition duration-150">View Signed</button>
                                             @endif

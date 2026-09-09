@@ -191,6 +191,7 @@
                 <div class="p-6">
                     <div class="flex flex-wrap gap-3">
                         {{-- Preview actions (available to all who can view this report) --}}
+                        @if($document->isPdf())
                         <button type="button" @click="src='{{ route('reports.pdf', $document->id) }}'; open=true" class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -198,6 +199,14 @@
                             </svg>
                             View / Preview
                         </button>
+                        @else
+                        <a href="{{ route('reports.download', $document->id) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm" title="This report is a Word document. Inline preview and signing require a PDF — please re-upload as PDF.">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            Download (Word — re-upload as PDF to preview/sign)
+                        </a>
+                        @endif
                         @if($document->status == 'signed' && $document->signed_path)
                             <button type="button" @click="src='{{ route('reports.pdf.signed', $document->id) }}'; open=true" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition duration-150 shadow-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

@@ -32,8 +32,8 @@
 
                             <div>
                                 <x-input-label for="file" :value="__('Report File')" />
-                                <input id="file" name="file" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,.doc,.docx" />
-                                <p class="mt-1 text-sm text-gray-600">Leave empty to keep the current file. Accepted formats: PDF, DOC, DOCX. Maximum size: 10MB.</p>
+                                <input id="file" name="file" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,application/pdf" />
+                                <p class="mt-1 text-sm text-gray-600">Leave empty to keep the current file. Accepted format: PDF only (required for preview &amp; signing). Maximum size: 10MB.</p>
                                 @if($document->original_name)
                                     <p class="mt-1 text-sm text-gray-500">Current file: <span class="font-medium text-gray-700">{{ $document->original_name }}</span></p>
                                 @endif

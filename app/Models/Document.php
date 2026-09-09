@@ -27,4 +27,14 @@ class Document extends Model
     {
         return $this->belongsTo(User::class, 'supervisor_id');
     }
+
+    /**
+     * Reports can only be previewed inline and signed (FPDI) when they are PDFs.
+     * Legacy Word uploads are download-only.
+     */
+    public function isPdf(): bool
+    {
+        return $this->mime_type === 'application/pdf'
+            || \Illuminate\Support\Str::endsWith(strtolower((string) $this->original_name), '.pdf');
+    }
 }

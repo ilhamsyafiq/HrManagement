@@ -31,8 +31,8 @@
 
                             <div>
                                 <x-input-label for="file" :value="__('Report File')" />
-                                <input id="file" name="file" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,.doc,.docx" required />
-                                <p class="mt-1 text-sm text-gray-600">Accepted formats: PDF, DOC, DOCX. Maximum size: 10MB.</p>
+                                <input id="file" name="file" type="file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,application/pdf" required />
+                                <p class="mt-1 text-sm text-gray-600">Accepted format: PDF only (required for preview &amp; signing). Maximum size: 10MB.</p>
                                 <x-input-error :messages="$errors->get('file')" class="mt-2" />
                             </div>
                         </div>

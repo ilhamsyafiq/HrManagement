@@ -35,7 +35,11 @@ class ReportController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'file' => 'required|file|mimes:pdf,doc,docx|max:10240', // 10MB max
+            // PDF only: reports must be previewable inline and signable (FPDI),
+            // both of which require PDF. Word docs can be neither.
+            'file' => 'required|file|mimes:pdf|max:10240', // 10MB max
+        ], [
+            'file.mimes' => 'The report must be a PDF file (so it can be previewed and signed).',
         ]);
 
         $file = $request->file('file');
@@ -76,7 +80,9 @@ class ReportController extends Controller
 
         $request->validate([
             'title' => 'required|string|max:255',
-            'file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'file' => 'nullable|file|mimes:pdf|max:10240',
+        ], [
+            'file.mimes' => 'The report must be a PDF file (so it can be previewed and signed).',
         ]);
 
         if ($request->hasFile('file')) {
@@ -198,8 +204,10 @@ class ReportController extends Controller
         // therefore unreachable by Admin/Super Admin).
         $disposition = request()->boolean('download') ? 'attachment' : 'inline';
 
+        // Serve the real mime type. Non-PDFs (legacy Word uploads) can't render in
+        // the PDF viewer, so the UI links them to download instead of this route.
         return response()->file(Storage::path($document->path), [
-            'Content-Type' => 'application/pdf',
+            'Content-Type' => $document->mime_type ?: 'application/pdf',
             'Content-Disposition' => $disposition . '; filename="' . $document->original_name . '"',
         ]);
     }
