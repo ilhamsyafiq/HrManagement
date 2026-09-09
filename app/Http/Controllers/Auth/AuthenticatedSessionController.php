@@ -28,6 +28,20 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // On a mobile device, send normal users (not Admin / Super Admin) straight
+        // to the Clock In/Out page so clocking in is the first thing they see.
+        // Admins and desktop users still land on their dashboard. If they were
+        // heading somewhere specific before login, intended() still respects that.
+        $user = $request->user();
+        $isMobile = (bool) preg_match(
+            '/Mobile|Android|iPhone|iPod|Windows Phone|IEMobile|BlackBerry|Opera Mini/i',
+            (string) $request->userAgent()
+        );
+
+        if ($isMobile && $user && ! $user->isSuperAdmin() && ! $user->isAdmin()) {
+            return redirect()->intended(route('clock.index', absolute: false));
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
