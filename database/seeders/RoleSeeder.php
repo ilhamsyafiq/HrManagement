@@ -14,7 +14,8 @@ class RoleSeeder extends Seeder
     {
         \App\Models\Role::updateOrCreate(['name' => 'Super Admin'], ['description' => 'Full system control']);
         \App\Models\Role::updateOrCreate(['name' => 'Admin'], ['description' => 'Manage employees and approve requests']);
-        \App\Models\Role::updateOrCreate(['name' => 'Supervisor'], ['description' => 'Manage interns and first approver for leaves']);
+        // "Supervisor" role retired — supervisor powers now come from having direct
+        // reports (users.supervisor_id), not a role. See User::isSupervisor().
         \App\Models\Role::updateOrCreate(['name' => 'Employee'], ['description' => 'Regular employee access']);
         \App\Models\Role::updateOrCreate(['name' => 'Intern'], ['description' => 'Intern employee with limited access']);
     }

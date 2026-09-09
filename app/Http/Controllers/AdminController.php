@@ -122,9 +122,13 @@ class AdminController extends Controller
 
         $roles = $rolesQuery->get();
         $departments = \App\Models\Department::all();
-        $supervisorRole = \App\Models\Role::where('name', 'Supervisor')->first();
-        $supervisors = $supervisorRole ? User::where('role_id', $supervisorRole->id)->get() : collect();
         $internRole = \App\Models\Role::where('name', 'Intern')->first();
+        // The dedicated Supervisor role was retired; anyone who isn't an intern
+        // can be assigned as a supervisor (supervisor powers come from having
+        // reports, not from a role).
+        $supervisors = User::where('is_intern', false)
+            ->when($internRole, fn ($q) => $q->where('role_id', '!=', $internRole->id))
+            ->orderBy('name')->get();
 
         return view('admin.users.create', compact('roles', 'departments', 'supervisors', 'internRole'));
     }
@@ -199,9 +203,12 @@ class AdminController extends Controller
 
         $roles = $rolesQuery->get();
         $departments = \App\Models\Department::all();
-        $supervisorRole = \App\Models\Role::where('name', 'Supervisor')->first();
-        $supervisors = $supervisorRole ? User::where('role_id', $supervisorRole->id)->get() : collect();
         $internRole = \App\Models\Role::where('name', 'Intern')->first();
+        // Supervisor role retired: any non-intern (except this user) can supervise.
+        $supervisors = User::where('is_intern', false)
+            ->where('id', '!=', $user->id)
+            ->when($internRole, fn ($q) => $q->where('role_id', '!=', $internRole->id))
+            ->orderBy('name')->get();
 
         return view('admin.users.edit', compact('user', 'roles', 'departments', 'supervisors', 'internRole'));
     }

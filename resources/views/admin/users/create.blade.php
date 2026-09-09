@@ -47,9 +47,8 @@
                                 @endforeach
                             </select>
                             <p class="mt-1.5 text-xs text-gray-500">
-                                <strong>Employee</strong> - Regular employee |
-                                <strong>Intern</strong> - Intern with supervisor & internship dates |
-                                <strong>Supervisor</strong> - Can manage interns
+                                <strong>Employee</strong> - Regular employee (automatically becomes a supervisor when assigned as someone's supervisor) |
+                                <strong>Intern</strong> - Intern with supervisor & internship dates
                             </p>
                             <x-input-error :messages="$errors->get('role_id')" class="mt-2" />
                         </div>

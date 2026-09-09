@@ -14,6 +14,9 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    /** Per-instance memo for isSupervisor() to avoid re-querying subordinates. */
+    protected ?bool $supervisorFlag = null;
+
     /**
      * Only Admin and Super Admin may access the Filament /admin panel.
      * Employee self-service stays in the existing Blade UI.
@@ -146,6 +149,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Leave::class);
     }
 
+    public function leaveEntitlements()
+    {
+        return $this->hasMany(LeaveEntitlement::class);
+    }
+
     public function documents()
     {
         return $this->hasMany(Document::class);
@@ -208,7 +216,24 @@ class User extends Authenticatable implements FilamentUser
 
     public function isSupervisor()
     {
-        return $this->role->name === 'Supervisor';
+        // Relationship-driven: a user is a supervisor purely because people report
+        // to them (supervisor_id). The old dedicated "Supervisor" role has been
+        // retired — anyone (Employee, HOD, etc.) who has direct reports gets
+        // supervisor powers over exactly those reports.
+        //
+        // Admins / Super Admins are deliberately excluded: they are handled by
+        // their own role checks, and role-branching logic elsewhere (e.g.
+        // pending-approval queues, RecipientResolver) checks isSupervisor()
+        // BEFORE isAdmin(), so returning false here keeps that routing correct.
+        if ($this->isSuperAdmin() || $this->isAdmin()) {
+            return false;
+        }
+
+        if ($this->supervisorFlag !== null) {
+            return $this->supervisorFlag;
+        }
+
+        return $this->supervisorFlag = $this->subordinates()->exists();
     }
 
     public function isEmployee()
