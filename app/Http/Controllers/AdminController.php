@@ -98,9 +98,9 @@ class AdminController extends Controller
     {
         $query = User::with(['role', 'department']);
 
-        // If not Super Admin, exclude Super Admin and Admin users
+        // If not Super Admin, hide only Super Admin accounts (Admins may manage everyone else)
         if (!auth()->user()->isSuperAdmin()) {
-            $query->whereNotIn('role_id', [1, 2]); // Exclude Super Admin (1) and Admin (2)
+            $query->whereDoesntHave('role', fn ($q) => $q->where('name', 'Super Admin'));
         }
 
         $users = $query->paginate(20);
@@ -115,9 +115,9 @@ class AdminController extends Controller
 
         $rolesQuery = \App\Models\Role::query();
 
-        // If not Super Admin, exclude Super Admin and Admin roles
+        // If not Super Admin, offer every role except Super Admin
         if (!auth()->user()->isSuperAdmin()) {
-            $rolesQuery->whereNotIn('id', [1, 2]); // Exclude Super Admin (1) and Admin (2)
+            $rolesQuery->where('name', '!=', 'Super Admin');
         }
 
         $roles = $rolesQuery->get();
@@ -140,8 +140,10 @@ class AdminController extends Controller
         }
 
         // Prevent non-Super Admin from creating Super Admin or Admin users
-        if (!auth()->user()->isSuperAdmin() && in_array($request->role_id, [1, 2])) {
-            abort(403, 'Unauthorized to create this type of user.');
+        // Only a Super Admin may create another Super Admin.
+        if (!auth()->user()->isSuperAdmin()
+            && (int) $request->role_id === (int) \App\Models\Role::where('name', 'Super Admin')->value('id')) {
+            abort(403, 'Only a Super Admin can create a Super Admin.');
         }
 
         $request->validate([
@@ -189,16 +191,17 @@ class AdminController extends Controller
             abort(403, 'Only admins can edit users or change supervisor/intern assignments.');
         }
 
-        // Prevent non-Super Admin from editing Super Admin or Admin users
-        if (!auth()->user()->isSuperAdmin() && in_array($user->role_id, [1, 2])) {
-            abort(403, 'Unauthorized to edit this user.');
+        // Only a Super Admin may edit a Super Admin account.
+        if (!auth()->user()->isSuperAdmin()
+            && (int) $user->role_id === (int) \App\Models\Role::where('name', 'Super Admin')->value('id')) {
+            abort(403, 'Only a Super Admin can edit a Super Admin account.');
         }
 
         $rolesQuery = \App\Models\Role::query();
 
-        // If not Super Admin, exclude Super Admin and Admin roles
+        // If not Super Admin, offer every role except Super Admin
         if (!auth()->user()->isSuperAdmin()) {
-            $rolesQuery->whereNotIn('id', [1, 2]); // Exclude Super Admin (1) and Admin (2)
+            $rolesQuery->where('name', '!=', 'Super Admin');
         }
 
         $roles = $rolesQuery->get();
@@ -221,14 +224,16 @@ class AdminController extends Controller
             abort(403, 'Only admins can update users or change supervisor/intern assignments.');
         }
 
-        // Prevent non-Super Admin from updating to Super Admin or Admin roles
-        if (!auth()->user()->isSuperAdmin() && in_array($request->role_id, [1, 2])) {
-            abort(403, 'Unauthorized to assign this role.');
+        // Only a Super Admin may assign the Super Admin role.
+        if (!auth()->user()->isSuperAdmin()
+            && (int) $request->role_id === (int) \App\Models\Role::where('name', 'Super Admin')->value('id')) {
+            abort(403, 'Only a Super Admin can assign the Super Admin role.');
         }
 
-        // Prevent non-Super Admin from editing Super Admin or Admin users
-        if (!auth()->user()->isSuperAdmin() && in_array($user->role_id, [1, 2])) {
-            abort(403, 'Unauthorized to edit this user.');
+        // Only a Super Admin may edit a Super Admin account.
+        if (!auth()->user()->isSuperAdmin()
+            && (int) $user->role_id === (int) \App\Models\Role::where('name', 'Super Admin')->value('id')) {
+            abort(403, 'Only a Super Admin can edit a Super Admin account.');
         }
 
         $request->validate([

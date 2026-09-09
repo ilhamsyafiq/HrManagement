@@ -58,7 +58,16 @@ class UserResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('role_id')
                             ->label('Role')
-                            ->relationship('role', 'name')
+                            // Only a Super Admin may see/assign the Super Admin role.
+                            ->relationship('role', 'name', fn ($query) => auth()->user()->isSuperAdmin()
+                                ? $query
+                                : $query->where('name', '!=', 'Super Admin'))
+                            ->rule(fn () => function (string $attribute, $value, \Closure $fail) {
+                                $superAdminId = \App\Models\Role::where('name', 'Super Admin')->value('id');
+                                if (! auth()->user()->isSuperAdmin() && (int) $value === (int) $superAdminId) {
+                                    $fail('Only a Super Admin can assign the Super Admin role.');
+                                }
+                            })
                             ->searchable()
                             ->preload()
                             ->required(),
