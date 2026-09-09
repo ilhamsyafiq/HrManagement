@@ -25,7 +25,7 @@ class RoleResource extends Resource
     /**
      * Core roles that must not be deleted.
      */
-    protected static array $coreRoles = ['Super Admin', 'Admin', 'Supervisor', 'Employee', 'Intern'];
+    protected static array $coreRoles = ['Super Admin', 'Admin', 'Employee', 'Intern'];
 
     public static function form(Form $form): Form
     {
@@ -70,7 +70,6 @@ class RoleResource extends Resource
                     ->options([
                         'Super Admin' => 'Super Admin',
                         'Admin' => 'Admin',
-                        'Supervisor' => 'Supervisor',
                         'Employee' => 'Employee',
                         'Intern' => 'Intern',
                     ]),

@@ -258,7 +258,6 @@ class UserResource extends Resource
                     ->color(fn (string $state) => match ($state) {
                         'Super Admin' => 'danger',
                         'Admin' => 'warning',
-                        'Supervisor' => 'info',
                         'Intern' => 'gray',
                         default => 'success',
                     })
