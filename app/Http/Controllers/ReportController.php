@@ -242,7 +242,7 @@ class ReportController extends Controller
 
         $isAdmin = $user->isAdmin() || $user->isSuperAdmin();
         $isOwner = $document->user_id === $user->id;
-        $isOwnersSupervisor = $document->user && $document->user->supervisor_id === $user->id;
+        $isOwnersSupervisor = $document->user && $user->supervises($document->user);
 
         if (!$isAdmin && !$isOwner && !$isOwnersSupervisor) {
             abort(403);
@@ -285,7 +285,7 @@ class ReportController extends Controller
         $user = auth()->user();
 
         $isAdmin = $user->isAdmin() || $user->isSuperAdmin();
-        $isOwnersSupervisor = $document->user && $document->user->supervisor_id === $user->id;
+        $isOwnersSupervisor = $document->user && $user->supervises($document->user);
 
         if (!$isAdmin && !$isOwnersSupervisor) {
             abort(403);

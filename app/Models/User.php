@@ -14,8 +14,9 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /** Per-instance memo for isSupervisor() to avoid re-querying subordinates. */
+    /** Per-instance memos to avoid re-querying on repeated capability checks. */
     protected ?bool $supervisorFlag = null;
+    protected ?bool $hodFlag = null;
 
     /**
      * Only Admin and Super Admin may access the Filament /admin panel.
@@ -132,6 +133,59 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(User::class, 'supervisor_id');
     }
 
+    /** Departments this user is the Head (HOD) of. */
+    public function headedDepartments()
+    {
+        return $this->hasMany(Department::class, 'hod_id');
+    }
+
+    /** True when this user is the Head of any department. */
+    public function isHod(): bool
+    {
+        if ($this->hodFlag !== null) {
+            return $this->hodFlag;
+        }
+
+        return $this->hodFlag = $this->headedDepartments()->exists();
+    }
+
+    /**
+     * Does $user report to this user? True when either $user is a direct report
+     * (supervisor_id) OR this user is the HOD of $user's department. An HOD acts
+     * as the supervisor for everyone in the department(s) they head.
+     */
+    public function supervises(User $user): bool
+    {
+        if ($user->supervisor_id === $this->id) {
+            return true;
+        }
+
+        return $user->department_id !== null
+            && Department::where('id', $user->department_id)
+                ->where('hod_id', $this->id)
+                ->exists();
+    }
+
+    /**
+     * IDs of everyone this user supervises: direct reports, plus (if they are an
+     * HOD) all members of the department(s) they head. Excludes self.
+     */
+    public function supervisedUserIds(): \Illuminate\Support\Collection
+    {
+        $ids = $this->subordinates()->pluck('id');
+
+        $headedDeptIds = $this->headedDepartments()->pluck('id');
+        if ($headedDeptIds->isNotEmpty()) {
+            $ids = $ids->merge(
+                static::whereIn('department_id', $headedDeptIds)
+                    ->where('id', '!=', $this->id)
+                    ->pluck('id')
+            );
+        }
+
+        return $ids->unique()->values();
+    }
+
     public function conversations()
     {
         return $this->belongsToMany(Conversation::class, 'conversation_participants')
@@ -216,10 +270,10 @@ class User extends Authenticatable implements FilamentUser
 
     public function isSupervisor()
     {
-        // Relationship-driven: a user is a supervisor purely because people report
-        // to them (supervisor_id). The old dedicated "Supervisor" role has been
-        // retired — anyone (Employee, HOD, etc.) who has direct reports gets
-        // supervisor powers over exactly those reports.
+        // Relationship-driven: a user is a supervisor because people report to
+        // them — either directly (supervisor_id) or because they are the HOD of a
+        // department (an HOD supervises everyone in their department). The old
+        // dedicated "Supervisor" role has been retired.
         //
         // Admins / Super Admins are deliberately excluded: they are handled by
         // their own role checks, and role-branching logic elsewhere (e.g.
@@ -233,7 +287,7 @@ class User extends Authenticatable implements FilamentUser
             return $this->supervisorFlag;
         }
 
-        return $this->supervisorFlag = $this->subordinates()->exists();
+        return $this->supervisorFlag = $this->subordinates()->exists() || $this->isHod();
     }
 
     public function isEmployee()

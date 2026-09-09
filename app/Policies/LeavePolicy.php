@@ -21,8 +21,8 @@ class LeavePolicy
      */
     public function view(User $user, Leave $leave): bool
     {
-        return $leave->user_id === $user->id || $user->isSuperAdmin() || $user->isAdmin() || 
-               ($user->isSupervisor() && $leave->user->supervisor_id === $user->id);
+        return $leave->user_id === $user->id || $user->isSuperAdmin() || $user->isAdmin() ||
+               ($leave->user && $user->supervises($leave->user));
     }
 
     /**
@@ -60,8 +60,9 @@ class LeavePolicy
     public function approve(User $user, Leave $leave): bool
     {
         // Supervisor/HOD can approve Pending leaves from their subordinates
-        if ($user->isSupervisor() && $leave->status === 'Pending'
-            && $leave->user->supervisor_id === $user->id) {
+        // (direct reports, or any department member when the user is the HOD).
+        if ($leave->status === 'Pending'
+            && $leave->user && $user->supervises($leave->user)) {
             // For interns: first-tier approval (Supervisor Approved)
             // For employees: direct approval
             return true;
